@@ -173,7 +173,7 @@ namespace demonware
 
 	std::string bdStorage::get_user_file_path(const std::string& name)
 	{
-		return "boiii_players/user/" + name;
+		return "t7x_players/user/" + name;
 	}
 
 	void bdStorage::upload_files(service_server* server, byte_buffer* buffer) const

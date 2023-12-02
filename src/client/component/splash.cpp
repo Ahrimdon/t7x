@@ -70,7 +70,7 @@ namespace splash
 
 				if (image)
 				{
-					window = CreateWindowExA(WS_EX_APPWINDOW, "Black Ops III Splash Screen", "BOIII",
+					window = CreateWindowExA(WS_EX_APPWINDOW, "Black Ops III Splash Screen", "T7x",
 					                         WS_POPUP | WS_SYSMENU,
 					                         (x_pixels - 320) / 2, (y_pixels - 100) / 2, 320, 100, nullptr,
 					                         nullptr,

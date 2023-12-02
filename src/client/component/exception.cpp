@@ -76,7 +76,7 @@ namespace exception
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
 
-			game::show_error(error_str.data(), "BOIII ERROR");
+			game::show_error(error_str.data(), "T7x ERROR");
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
 
@@ -88,7 +88,7 @@ namespace exception
 				++recovery_data.recovery_counts;
 
 				game::Com_Error(game::ERR_DROP, "Fatal error (0x%08X) at 0x%p (0x%p).\nA minidump has been written.\n\n"
-				                "BOIII has tried to recover your game, but it might not run stable anymore.\n\n"
+				                "T7x has tried to recover your game, but it might not run stable anymore.\n\n"
 				                "Make sure to update your graphics card drivers and install operating system updates!\n"
 				                "Closing or restarting Steam might also help.",
 				                exception_data.code, exception_data.address,
@@ -133,8 +133,8 @@ namespace exception
 				info.append("\r\n");
 			};
 
-			line("BOIII Crash Dump");
-			line("");
+			line("T7x Crash Dump");
+			line(std::string{});
 			line("Version: "s + VERSION);
 			line("Timestamp: "s + get_timestamp());
 			line(utils::string::va("Exception: 0x%08X", exceptioninfo->ExceptionRecord->ExceptionCode));
@@ -156,13 +156,13 @@ namespace exception
 
 		void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
-			const std::string crash_name = utils::string::va("minidumps/boiii-crash-%s.zip",
+			const std::string crash_name = utils::string::va("minidumps/t7x-crash-%s.zip",
 			                                                 get_timestamp().data());
 
 			utils::compression::zip::archive zip_file{};
 			zip_file.add("crash.dmp", create_minidump(exceptioninfo));
 			zip_file.add("info.txt", generate_crash_info(exceptioninfo));
-			zip_file.write(crash_name, "BOIII Crash Dump");
+			zip_file.write(crash_name, "T7x Crash Dump");
 		}
 
 		bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo)

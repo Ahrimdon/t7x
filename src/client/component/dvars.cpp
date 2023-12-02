@@ -104,7 +104,7 @@ namespace dvars
 
 		std::string get_config_file_path()
 		{
-			return "boiii_players/user/config.cfg";
+			return "t7x_players/user/config.cfg";
 		}
 
 		bool is_archive_dvar(const game::dvar_t* dvar)

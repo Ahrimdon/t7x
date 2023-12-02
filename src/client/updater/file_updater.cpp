@@ -12,10 +12,10 @@
 
 #define UPDATE_SERVER "https://master.bo3.eu/"
 
-#define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
-#define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
+#define UPDATE_FILE_MAIN UPDATE_SERVER "files.json"
+#define UPDATE_FOLDER_MAIN UPDATE_SERVER "t7x/"
 
-#define UPDATE_HOST_BINARY "boiii.exe"
+#define UPDATE_HOST_BINARY "t7x.exe"
 
 namespace updater
 {

@@ -127,45 +127,23 @@ namespace client_patches
 		game::fileHandle_t fs_f_open_file_write_to_dir_stub(const char* filename, [[maybe_unused]] const char* dir,
 		                                                    const char* os_base_path)
 		{
-			return game::FS_FOpenFileWriteToDir(filename, "boiii_players", os_base_path);
+			return game::FS_FOpenFileWriteToDir(filename, "t7x_players", os_base_path);
 		}
 
 		game::fileHandle_t fs_f_open_file_read_from_dir_stub(const char* filename, [[maybe_unused]] const char* dir,
 		                                                     const char* os_base_path)
 		{
-			return game::FS_FOpenFileReadFromDir(filename, "boiii_players", os_base_path);
+			return game::FS_FOpenFileReadFromDir(filename, "t7x_players", os_base_path);
 		}
 
 		int i_stricmp_stub(const char* s0, [[maybe_unused]] const char* s1)
 		{
-			return game::I_stricmp(s0, "boiii_players");
+			return game::I_stricmp(s0, "t7x_players");
 		}
 
 		void fs_add_game_directory_stub(const char* path, [[maybe_unused]] const char* dir)
 		{
-			utils::hook::invoke<void>(0x1422A2AF0_g, path, "boiii_players");
-		}
-
-		// TODO: Remove me after some time
-		extern "C" void migrate_if_needed()
-		{
-			std::error_code e;
-
-			// Folder does not exist. Nothing to migrate
-			if (!std::filesystem::is_directory("players", e))
-			{
-				return;
-			}
-
-			// Folder does exist. Already migrated
-			if (std::filesystem::is_directory("boiii_players", e))
-			{
-				return;
-			}
-
-			utils::io::create_directory("boiii_players");
-
-			std::filesystem::copy("players", "boiii_players", std::filesystem::copy_options::recursive, e);
+			utils::hook::invoke<void>(0x1422A2AF0_g, path, "t7x_players");
 		}
 
 		void patch_players_folder_name()
@@ -198,11 +176,6 @@ namespace client_patches
 	{
 	public:
 		static_assert(offsetof(game::clientActive_t, viewangles) == 0xB8C8);
-
-		component()
-		{
-			migrate_if_needed(); // TODO: Remove me after some time
-		}
 
 		void post_unpack() override
 		{

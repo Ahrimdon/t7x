@@ -205,7 +205,7 @@ namespace ui_scripting
 			lua["print"] = function(reinterpret_cast<game::hks::lua_function>(0x141D30290_g)); // hks::base_print
 			lua["table"]["unpack"] = lua["unpack"];
 			lua["luiglobals"] = lua;
-			lua["Engine"]["IsBOIII"] = true;
+			lua["Engine"]["is_t7x"] = true;
 		}
 
 		void start()
@@ -215,7 +215,7 @@ namespace ui_scripting
 			const utils::nt::library host{};
 			const auto folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
 			load_scripts((game::get_appdata_path() / "data" / folder).string());
-			load_scripts((host.get_folder() / "boiii" / folder).string());
+			load_scripts((host.get_folder() / "t7x" / folder).string());
 		}
 
 		void try_start()
@@ -251,7 +251,7 @@ namespace ui_scripting
 				doneFirstSnapshot = false;
 
 				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
-				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
+				load_local_script_files((host.get_folder() / "t7x/ui_scripts/").string());
 				return;
 			}
 			try_start();

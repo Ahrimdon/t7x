@@ -752,7 +752,7 @@ namespace arxan
 				std::string cmd_line = GetCommandLineA();
 				if (!strstr(cmd_line.data(), "fs_game"))
 				{
-					cmd_line += " +set fs_game \"boiii\"";
+					cmd_line += " +set fs_game \"t7x\"";
 				}
 
 				return cmd_line;

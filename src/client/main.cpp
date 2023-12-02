@@ -281,7 +281,7 @@ int main()
 
 			if (!utils::io::file_exists(launcher::get_launcher_ui_file().generic_wstring()))
 			{
-				throw std::runtime_error("BOIII needs an active internet connection for the first time you launch it.");
+				throw std::runtime_error("T7x needs an active internet connection for the first time you launch it.");
 			}
 
 			const auto client_binary = "BlackOps3.exe"s;
@@ -295,7 +295,7 @@ int main()
 			if (!has_client && !has_server)
 			{
 				throw std::runtime_error(
-					"Can't find a valid BlackOps3.exe or BlackOps3_UnrankedDedicatedServer.exe. Make sure you put boiii.exe in your Black Ops 3 installation folder.");
+					"Can't find a valid BlackOps3.exe or BlackOps3_UnrankedDedicatedServer.exe. Make sure you put T7x.exe in your Black Ops 3 installation folder.");
 			}
 
 			if (!is_server)

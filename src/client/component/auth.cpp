@@ -53,7 +53,7 @@ namespace auth
 
 		std::string get_protected_data()
 		{
-			std::string input = "momo5502-boiii-auth";
+			std::string input = "momo5502-t7x-auth";
 
 			DATA_BLOB data_in{}, data_out{};
 			data_in.pbData = reinterpret_cast<uint8_t*>(input.data());
@@ -98,7 +98,7 @@ namespace auth
 		{
 			static const auto is_first = []
 			{
-				static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "boiii_mutex");
+				static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "t7x_mutex");
 				return mutex && GetLastError() != ERROR_ALREADY_EXISTS;
 			}();
 

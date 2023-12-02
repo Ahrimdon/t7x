@@ -93,7 +93,7 @@ namespace server_list
 
 		std::string get_favorite_servers_file_path()
 		{
-			return "boiii_players/user/favorite_servers.txt";
+			return "t7x_players/user/favorite_servers.txt";
 		}
 
 		void write_favorite_servers()

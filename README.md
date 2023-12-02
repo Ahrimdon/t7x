@@ -1,7 +1,7 @@
-# What is BOIII ☄️
+# What is T7x ☄️
 
-BOIII is a game modification for Call of Duty: Black Ops 3.  
-The Steam version of Black Ops 3 is required to be owned and installed for BOIII to work. You can get it from <a href="https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/">here</a>.
+T7x is a game modification for Call of Duty: Black Ops 3.  
+The Steam version of Black Ops 3 is required to be owned and installed for T7x to work. You can get it from <a href="https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/">here</a>.
 
 ## Writeups & Articles
 
