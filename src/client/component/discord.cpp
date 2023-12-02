@@ -19,7 +19,6 @@ namespace discord
 			ZeroMemory(&discord_presence, sizeof(discord_presence));
 
 			discord_presence.instance = 1;
-			//discord_presence.state = "BOIII";
 
 			discord_presence.partySize = 0;
 			discord_presence.partyMax = 0;
@@ -48,7 +47,7 @@ namespace discord
 			handlers.spectateGame = nullptr;
 			handlers.joinRequest = nullptr;
 
-			Discord_Initialize("1047539933922988112", &handlers, 1, nullptr);
+			Discord_Initialize("1180599439862272060", &handlers, 1, nullptr);
 
 			this->initialized_ = true;
 

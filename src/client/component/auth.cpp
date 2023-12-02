@@ -214,6 +214,26 @@ namespace auth
 			distribute_player_xuid(target, player_index, xuid);
 		}
 
+		bool is_invalid_char(const int c)
+		{
+			if (c == '%')
+			{
+				return true;
+			}
+
+			if (c == '~')
+			{
+				return true;
+			}
+
+			if (c < 32 || c > 126)
+			{
+				return true;
+			}
+
+			return false;
+		}
+
 		void dispatch_connect_packet(const game::netadr_t& target, const std::string& data)
 		{
 			utils::byte_buffer buffer(data);
@@ -252,6 +272,22 @@ namespace auth
 			if (xuid != key.get_hash())
 			{
 				network::send(target, "error", "Bad XUID");
+				return;
+			}
+
+			const auto name = info_string.get("name");
+
+			const auto is_name_invalid = [&name]() -> bool
+			{
+				return std::ranges::any_of(name, [](const auto c)
+				{
+					return is_invalid_char(c);
+				});
+			};
+
+			if (name.empty() || is_name_invalid())
+			{
+				network::send(target, "error", "Bad name");
 				return;
 			}
 

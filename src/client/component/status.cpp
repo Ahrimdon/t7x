@@ -40,6 +40,9 @@ namespace status
 			                         "num score ping xuid             name             address                  qport  \n");
 			utils::hook::copy_string(game::select(0x1430504E0, 0x140E85A80),
 			                         "--- ----- ---- ---------------- ---------------- ------------------------ ------ \n");
+
+			utils::hook::copy_string(game::select(0x1430417C0, 0x140E76D50),
+			                         "%i.%i.%i.%i:%i");
 		}
 	};
 }

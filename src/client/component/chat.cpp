@@ -58,7 +58,7 @@ namespace chat
 
 		void send_chat_message(int client_num, const std::string& text)
 		{
-			game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE_0, utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
+			game::SV_GameSendServerCommand(client_num, game::SV_CMD_CAN_IGNORE_0, utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
 		}
 
 		// This function has probably a different name
