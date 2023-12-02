@@ -64,6 +64,8 @@
 #undef min
 #endif
 
+#undef GetObject
+
 #include <cassert>
 #include <cctype>
 #include <climits>

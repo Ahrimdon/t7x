@@ -34,9 +34,9 @@ namespace updater
 		std::vector<file_info> parse_file_infos(const std::string& json)
 		{
 			rapidjson::Document doc{};
-			doc.Parse(json.data(), json.size());
+			const rapidjson::ParseResult result = doc.Parse(json.data(), json.size());
 
-			if (!doc.IsArray())
+			if (!result || !doc.IsArray())
 			{
 				return {};
 			}
@@ -45,19 +45,19 @@ namespace updater
 
 			for (const auto& element : doc.GetArray())
 			{
-				if (!element.IsArray())
+				if (!element.IsObject())
 				{
 					continue;
 				}
 
-				auto array = element.GetArray();
+				auto file = element.GetObject();
 
 				file_info info{};
-				info.name.assign(array[0].GetString(), array[0].GetStringLength());
-				info.size = array[1].GetInt64();
-				info.hash.assign(array[2].GetString(), array[2].GetStringLength());
+				info.name = file["name"].GetString();
+				info.size = file["size"].GetUint64();
+				info.hash = file["hash"].GetString();
 
-				files.emplace_back(std::move(info));
+				files.emplace_back(info);
 			}
 
 			return files;
