@@ -91,9 +91,9 @@ namespace server_list
 			}
 		}
 
-		std::string get_favorite_servers_file_path()
+		const char* get_favorite_servers_file_path()
 		{
-			return "t7x_players/user/favorite_servers.txt";
+			return "t7x/players/user/favorite_servers.txt";
 		}
 
 		void write_favorite_servers()
@@ -112,7 +112,7 @@ namespace server_list
 
 		void read_favorite_servers()
 		{
-			const std::string path = get_favorite_servers_file_path();
+			const auto* path = get_favorite_servers_file_path();
 			if (!utils::io::file_exists(path))
 			{
 				return;

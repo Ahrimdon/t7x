@@ -29,7 +29,7 @@ namespace utils::properties
 		{
 			static auto props = []
 			{
-				auto path = std::filesystem::path("t7x_players/properties.json");
+				auto path = std::filesystem::path("t7x/players/properties.json");
 				const auto legacy_path = get_properties_folder() / "properties.json";
 
 				if (io::file_exists(legacy_path) && !io::file_exists(path))
