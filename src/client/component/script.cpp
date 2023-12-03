@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include "game_event.hpp"
 
@@ -151,14 +152,19 @@ namespace script
 			{
 				load("custom_scripts" / game_type.value(), true);
 			}
+
+			const std::filesystem::path mapname = game::get_dvar_string("mapname");
+			if (!mapname.empty())
+			{
+				load("custom_scripts" / mapname, true);
+			}
 		}
 
 		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,
 		                                        const bool error_if_missing,
 		                                        const int wait_time)
 		{
-			auto* asset_header = db_find_x_asset_header_hook.invoke<game::RawFile*>(
-				type, name, error_if_missing, wait_time);
+			auto* asset_header = db_find_x_asset_header_hook.invoke<game::RawFile*>(type, name, error_if_missing, wait_time);
 
 			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
 			{
