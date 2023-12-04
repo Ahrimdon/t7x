@@ -75,7 +75,8 @@ BEGIN
             VALUE "FileVersion", VERSION_FILE
             VALUE "InternalName", "T7x"
             VALUE "LegalCopyright", "Copyright (C) 2022 momo5502. All rights reserved."
-            VALUE "OriginalFilename", "T7x.exe"
+            VALUE "Licence", "GPLv3"
+            VALUE "OriginalFilename", "t7x.exe"
             VALUE "ProductName", "T7x"
             VALUE "ProductVersion", VERSION_PRODUCT
         END
