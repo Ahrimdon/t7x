@@ -13,6 +13,8 @@
 #include "steam_proxy.hpp"
 #include "scheduler.hpp"
 
+#define NO_CHECK
+
 namespace steam_proxy
 {
 	namespace
@@ -194,7 +196,7 @@ namespace steam_proxy
 
 		void evaluate_ownership_state(const ownership_state state)
 		{
-#if defined(DEV_BUILD)
+#if defined(DEV_BUILD) || defined(NO_CHECK)
 			(void)state;
 #else
 			switch (state)
