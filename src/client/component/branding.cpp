@@ -21,7 +21,7 @@ namespace branding
 			const auto* font = reinterpret_cast<uint32_t*(*)()>(0x141CAC8E0_g)();
 			if (!font) return;
 
-			game::R_AddCmdDrawText("T7x: " VERSION, std::numeric_limits<int>::max(), font, static_cast<float>(x),
+			game::R_AddCmdDrawText("", std::numeric_limits<int>::max(), font, static_cast<float>(x),
 			                       y + static_cast<float>(font[2]) * scale,
 			                       scale, scale, 0.0f, color, game::ITEM_TEXTSTYLE_NORMAL);
 		}
