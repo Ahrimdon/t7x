@@ -9,7 +9,10 @@
 
 ---
 ### <u>**IMPORTANT:**</u>
-### T7x is cross compatible with the BOIII Client. You can play the same servers on T7x and BOIII Client, however T7x is newer.
+- ### T7x is cross-compatible with the BOIII Client. You can play the same servers on T7x and BOIII Client, however T7x is newer.
+- ### You are <u>***NOT***</u> required to own Call of Duty: Black Ops 3 in order to play this client. Steam Ownership Verification has been <u>***removed***</u>.
+- ### You can view the changes made from original repository [here](https://git.rimmyscorner.com/Parasyn/t7x/compare/ce3fdcc85dbc403875911015ef194a028fa485a6..HEAD).
+---
 
 ## Download
 Clone the Git repository or download as ZIP.
@@ -38,12 +41,14 @@ Clone the Git repository or download as ZIP.
     > **Note**: On Windows, press `Win + R`, type `%localappdata%`, click ok. Default location is `C:\Users\%USERPROFILE%\AppData\Local`
 3. Launch `t7x.exe`.
 4. You can change your name by modifying `Call of Duty Black Ops III\t7x\players\properties.json` or use `/name PLAYERNAME` in-game.
+5. If running a server, extract `T7xDedicatedConfigs.zip` into your `Call of Duty Black Ops III` folder.
 
 ## Repository Contents
   - T7x Client
   - All Necessary Files (Including `ext.dll`)
   - T7x Client Dedicated Server Configuration Files
   - Python Script to format file hashes for files.json
+  - Localized dependencies
 
 ## Added Features
   - Remove Steam Ownership Verification
@@ -51,7 +56,7 @@ Clone the Git repository or download as ZIP.
   - No Auto-Update (The new ext.dll adds Steam Verification, this is *CRUCIAL* if you do not own the game)
   - Reverted launcher to the original style
   - Changed executable icon to match original
-  - Add files.json for users to host their own Master Server/Cloud Index
+  - Add files.json for users to host their own Master Server/HTTP fastDL Index
 
 ## Getting Game Files
 
@@ -68,20 +73,32 @@ If you don't have `git` installed on your machine, follow these steps:
    - During the installation, you will be asked if you want to add Git to your system's PATH environment variable. Ensure you choose the option to do so. This allows you to use Git from the command line without specifying its full path.
 4. After installation, open a terminal or command prompt and type `git --version` to ensure Git is correctly installed.
 
+## Compile from Source Code
+
+### Prerequisites
+
+- [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS2022&source=VSLandingPage&cid=2030&passive=false)
+- The required code libraries installed using [VSBuildTools](https://aka.ms/vs/17/release/vs_BuildTools.exe)
+
+### Build
+
+1. Clone the Git repository using `git clone https://git.rimmyscorner.com/Parasyn/t7x.git` (It is recommended to clone, however you can `Download ZIP` as all submodules have been localized).
+2. Run `generate.bat` to initialize the submodules and build the VS .sln file.
+3. Open the project in Visual Studio, change the top drop down lists to `Release`, `x64`. You can also modify (or leave same) the Visual Studio edition/path in the `build.bat` file and build the solution via the batch script.
+4. Build the application.
 <br>
 
-# T7 Server Config
-Config for T7 Dedicated Servers for use with the t7x Client.
+## T7 Server Config
+Config for T7 Dedicated Servers for use with the T7x Client.
 
 ## How to use
-1. Download the BO3 Unranked Dedicated Server via [Releases](https://git.rimmyscorner.com/Parasyn/t7x/releases). It is also on Steam (It's located in the "Tools" section in your steam library.)
-2. Open the Unranked Server folder in windows explorer (if you own BO3 on Steam and have it installed it will be in your BO3 Game Folder)
-3. Add t7x.exe to the UnrankedServer Folder
-4. Download this repository and extract startup batch files as well as the t7x and zone folder to the UnrankedServer Folder
-5. Edit the config(s) in /zone to your liking.
-6. (Optional) Edit your game rules under t7x/gamesettings/mp.
-6. Port forward UDP 27017 or whatever port you choose.
-7. Start the Server using `T7x_MP_Server.bat` or `T7x_ZM_Server.bat`
+1. Download the BO3 Unranked Dedicated Server via Steam (It's located in the "Tools" section in your steam library.)
+2. Add t7x.exe to the `Call of Duty Black Ops 3` folder.
+3. Download this repository and extract startup batch files as well as the t7x and zone folder to the UnrankedServer Folder
+4. Edit the config(s) in `/zone/` to your liking.
+5. (Optional) Edit your game rules under `Call of Duty Black Ops 3/t7x/gamesettings/mp`.
+6. Port forward UDP 27017.
+7. Start the Server using T7x_MP_Server.bat or T7x_ZM_Server.bat
 
 ## Additional Steps required for hosting Zombies Dedicated Servers
 As of right now you need to take additional Steps to host Zombies Servers.
@@ -109,7 +126,7 @@ zone/zm_zod_patch.ff
 
 from your BO3 Game folder into the UnrankedServer's ```zone``` Folder. Do the same with the FastFiles of the Maps you want to host on the Server, you do not need to copy the .xpak files, those hold Textures and Sounds which the Server doesn't need. You can use the zm_server.cfg as a short name references if you want to grab the others.
 
-You are now ready to start the Server using !start_zm_server.bat. If the server still instantly closes while opening the !start_zm_server.bat or !start_cp_server.bat. Check the console_mp.log from identities\dedicatedpc\ folder. Scroll down until you see "Could not find zone: xxxx".
+You are now ready to start the Server using T7x_ZM_Server.bat. If the server still instantly closes while opening the T7x_ZM_Server.bat or T7x_CP_Server.bat. Check the console_mp.log from identities\dedicatedpc\ folder. Scroll down until you see "Could not find zone: xxxx".
 
 ## Disclaimer
 
@@ -118,6 +135,12 @@ academic research. It is not intended to be used to attack
 other systems. Project maintainers are not responsible or
 liable for misuse of the software. Use responsibly.
 
+## Credits:
+
+- [Dss0](https://github.com/Dss0/t7-server-config) - Dedicated Server Files & Tutorial
+- [momo5502](https://github.com/momo5502) - Arxan/Steam research, original developer
+- [AlterWare](https://alterware.dev/) - T7x project revival and rebranding
+
 ## ***End README***
 
 # <u>Legacy README.md</u>
@@ -125,7 +148,7 @@ liable for misuse of the software. Use responsibly.
 ### What is T7x ☄️
 
 T7x is a [discontinued][notice-link] game modification for Call of Duty: Black Ops 3.  
-The Steam version of Black Ops 3 is required to be owned and installed for T7x to work. You can get it from <a href="https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/">here</a>.
+~~The Steam version of Black Ops 3 is required to be owned and installed for T7x to work. You can get it from <a href="https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/">here</a>.~~
 
 ### Build
 

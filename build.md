@@ -1,7 +1,11 @@
+## Prerequisites
+
+- [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS2022&source=VSLandingPage&cid=2030&passive=false)
+- The required code libraries installed using [VSBuildTools](https://aka.ms/vs/17/release/vs_BuildTools.exe)
+
 ## Build
-- Install [Git](https://git-scm.com), the distributed revision control system and add it to your system PATH
-- Install [*Premake5*](https://premake.github.io) and add it to your system PATH
-- [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository
-- Update the git submodules using ``git submodule update --init --recursive``
-- Run Premake with with the following command ``premake5 vs2022``
-- You may now open ``build/t7x.sln`` with Visual Studio and proceed with building ⚒️
+
+1. Clone the Git repository using `git clone https://git.rimmyscorner.com/Parasyn/t7x.git` (It is recommended to clone, however you can `Download ZIP` as all submodules have been localized).
+2. Run `generate.bat` to initialize the submodules and build the VS .sln file.
+3. Open the project in Visual Studio, change the top drop down lists to `Release`, `x64`. You can also modify (or leave same) the Visual Studio edition/path in the `build.bat` file and build the solution via the batch script.
+4. Build the application.
