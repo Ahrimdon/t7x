@@ -15,7 +15,7 @@
 ---
 
 ## Installer (Easiest)
-1. Download the [T7xInstaller.exe](https://git.rimmyscorner.com/Rim/t7x/releases/download/latest/t7xInstaller.exe) from [Releases](https://git.rimmyscorner.com/Rim/t7x/releases/download/latest)
+1. Download the [T7xInstaller.exe](https://git.rimmyscorner.com/Rim/t7x/releases/download/latest/t7xInstaller.exe) from [Releases](https://git.rimmyscorner.com/Rim/t7x/releases/tag/latest)
 2. Place in *Call of Duty Black Ops III* game directory and run
 *Note: Run as Administrator if your game installation is in a protected folder.*
 
