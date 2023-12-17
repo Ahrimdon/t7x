@@ -14,10 +14,15 @@
 - ### You can view the changes made from original repository [here](https://git.rimmyscorner.com/Parasyn/t7x/compare/ce3fdcc85dbc403875911015ef194a028fa485a6..HEAD).
 ---
 
+## Installer (Easiest)
+1. Download the [T7xInstaller.exe](https://git.rimmyscorner.com/Rim/scriptable-client-installers/releases/download/v1.0.1/t7xInstaller.exe) from [Releases](https://git.rimmyscorner.com/Rim/scriptable-client-installers/releases)
+2. Place in *Call of Duty Black Ops III* game directory and run
+*Note: Run as Administrator if your game installation is in a protected folder.*
+
 ## Download
 Clone the Git repository or download as ZIP.
 
-- <u>**Download Release (EASIEST)**</u>
+- <u>**Download Release**</u>
   - Click on `Releases` at the top and navigate to the latest release
   - Download `t7x.zip`
   - If you plan on running a server, download `T7xDedicatedConfigs.zip`
