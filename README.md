@@ -11,7 +11,7 @@
 ### <u>**IMPORTANT:**</u>
 - ### T7x is cross-compatible with the BOIII Client. You can play the same servers on T7x and BOIII Client, however T7x is newer.
 - ### You are <u>***NOT***</u> required to own Call of Duty: Black Ops 3 in order to play this client. Steam Ownership Verification has been <u>***removed***</u>.
-- ### You can view the changes made from original repository [here](https://git.rimmyscorner.com/Parasyn/t7x/compare/ce3fdcc85dbc403875911015ef194a028fa485a6..HEAD).
+- ### You can view the changes made from original repository [here](https://git.rimmyscorner.com/Rim/t7x/compare/3e75c64ece0527dec384829dc28dd2c9d3ce5370..HEAD).
 ---
 
 ## Installer (Easiest)
