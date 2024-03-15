@@ -37,7 +37,7 @@ Clone the Git repository or download as ZIP.
   - Open a terminal or command prompt.
   - Run the following command:
     ```
-    git clone https://git.rimmyscorner.com/Parasyn/t7x.git
+    git clone https://git.rimmyscorner.com/Rim/t7x.git
     ```
 
 ## Installation
@@ -67,7 +67,7 @@ Clone the Git repository or download as ZIP.
 
 ## Getting Game Files
 
-- You can download the `Call of Duty Black Ops III` game files [directly](https://gofile.io/d/7pvpEs) or torrent them [here](https://git.rimmyscorner.com/Parasyn/cod-games-download/releases/download/v1.0.0/t7_full_game.zip).
+- You can download the `Call of Duty Black Ops III` game files [directly](https://gofile.io/d/7pvpEs) or torrent them [here](https://git.rimmyscorner.com/Rim/cod-games-download/releases/download/v1.0.0/t7_full_game.zip).
 - The DLC torrent is included.
 
 ## Installing Git (Optional)
@@ -89,7 +89,7 @@ If you don't have `git` installed on your machine, follow these steps:
 
 ### Build
 
-1. Clone the Git repository using `git clone https://git.rimmyscorner.com/Parasyn/t7x.git` (It is recommended to clone, however you can `Download ZIP` as all submodules have been localized).
+1. Clone the Git repository using `git clone https://git.rimmyscorner.com/Rim/t7x.git` (It is recommended to clone, however you can `Download ZIP` as all submodules have been localized).
 2. Run `generate.bat` to initialize the submodules and build the VS .sln file.
 3. Open the project in Visual Studio, change the top drop down lists to `Release`, `x64`. You can also modify (or leave same) the Visual Studio edition/path in the `build.bat` file and build the solution via the batch script.
 4. Build the application.
