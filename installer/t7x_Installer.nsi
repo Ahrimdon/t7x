@@ -3,9 +3,9 @@
 !include "nsDialogs.nsh"
 
 ; Constants
-!define PRODUCT_NAME "t7x"
+!define PRODUCT_NAME "T7x"
 !define PRODUCT_DESCRIPTION "Call of Duty Black Ops III Client"
-!define COPYRIGHT "Created by Ahrimdon - Free and Open Source"
+!define COPYRIGHT "Created by Ahrimdon (FOSS)"
 !define PRODUCT_VERSION "1.0.0.0"
 !define SETUP_VERSION "1.0.0.0"
 
@@ -24,8 +24,8 @@ VIAddVersionKey "LegalCopyright" "${COPYRIGHT}"
 VIAddVersionKey "FileVersion" "${SETUP_VERSION}"
 
 ; Modern UI Appearance
-!define MUI_ICON "Contrib\Graphics\Icons\icon.ico"
-!define MUI_UNICON "Contrib\Graphics\Icons\icon.ico"
+!define MUI_ICON "assets\graphics\icons\icon.ico"
+!define MUI_UNICON "assets\graphics\icons\icon.ico"
 !define MUI_HEADERIMAGE
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 ; !define MUI_FINISHPAGE_RUN "$INSTDIR\t7x.exe"
@@ -44,16 +44,16 @@ ShowInstDetails show
 ShowUninstDetails show
 
 ; Installer Images
-!define MUI_WELCOMEFINISHPAGE_BITMAP "Contrib\Graphics\Assets\logo-cropped.bmp"
-!define MUI_HEADERIMAGE_BITMAP "Contrib\Graphics\Assets\banner-t7x-title.bmp" ; For installer header
+!define MUI_WELCOMEFINISHPAGE_BITMAP "assets\graphics\assets\logo-cropped.bmp"
+!define MUI_HEADERIMAGE_BITMAP "assets\graphics\assets\banner-t7x-title.bmp" ; For installer header
 
 ; Uninstaller Images
-!define MUI_UNHEADERIMAGE_BITMAP "Contrib\Graphics\Assets\banner-t7x-title.bmp" ; For uninstaller header
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP "Contrib\Graphics\Assets\logo-cropped.bmp" ; For uninstaller finish page
+!define MUI_UNHEADERIMAGE_BITMAP "assets\graphics\assets\banner-t7x-title.bmp" ; For uninstaller header
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "assets\graphics\assets\logo-cropped.bmp" ; For uninstaller finish page
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-; !insertmacro MUI_PAGE_LICENSE "Contrib\Text\Readme.txt"
+; !insertmacro MUI_PAGE_LICENSE "assets\text\readme.txt"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -70,33 +70,43 @@ FunctionEnd
 ; Sections
 Section "Main Application" SecMain
     SetOutPath $INSTDIR
-    File "game\t7x.exe"
-    File "game\base_game_dir\README.md"
-    File "game\base_game_dir\T7x_CP_Server.bat"
-    File "game\base_game_dir\T7x_MP_Server.bat"
-    File "game\base_game_dir\T7x_ZM_Server.bat"
+    File "..\build\bin\x64\Release\t7x.exe"
+    File "..\cfg\README.md"
+    File "..\cfg\T7x_CP_Server.bat"
+    File "..\cfg\T7x_MP_Server.bat"
+    File "..\cfg\T7x_ZM_Server.bat"
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 SectionEnd
 
-Section "Game Directory t7x Files" SecT7xData
+Section "Game Directory T7x Files" SecT7xData
     SetOutPath $INSTDIR\t7x
-    File /r "game\base_game_dir\t7x\*.*"
+    File /r "..\cfg\t7x\*.*"
 SectionEnd
 
-Section "Game Directory zone Files" SecZoneData
+Section "Game Directory T7x Player Files" SecT7xPlayerData
+    SetOutPath $INSTDIR\t7x\players
+    File /r "assets\game\t7x\players\*.*"
+SectionEnd
+
+Section "Game Directory Zone Files" SecZoneData
     SetOutPath $INSTDIR\zone
-    File /r "game\base_game_dir\zone\*.*"
+    File /r "..\cfg\zone\*.*"
 SectionEnd
 
-Section "LocalAppData Files" SecData
+Section "LocalAppData Extension File" SecExt
     SetOutPath $LOCALAPPDATA\t7x
-    File /r "game\localappdata\t7x\*.*"
+    File "..\ext.dll"
+SectionEnd
+
+Section "LocalAppData Data Files" SecData
+    SetOutPath $LOCALAPPDATA\t7x\data
+    File /r "..\data\*.*"
 SectionEnd
 
 Section "LocalAppData Cache Files" SecCache
     SetOutPath $LOCALAPPDATA\cache
-    File "game\localappdata\cache\cache.bin"
-    File "game\localappdata\cache\data.bin"
+    File "..\cache\cache.bin"
+    File "..\cache\data.bin"
 SectionEnd
 
 Function finishpageaction
