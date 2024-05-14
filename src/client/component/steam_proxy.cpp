@@ -141,7 +141,7 @@ namespace steam_proxy
 		{
 			if (!client_utils || !client_user)
 			{
-				return ownership_state::success;
+				return ownership_state::nosteam;
 			}
 
 			if (!client_user.invoke<bool>("BIsSubscribedApp", app_id))
