@@ -53,7 +53,7 @@ ShowUninstDetails show
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-; !insertmacro MUI_PAGE_LICENSE "Readme.txt"
+; !insertmacro MUI_PAGE_LICENSE "Contrib\Text\Readme.txt"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH

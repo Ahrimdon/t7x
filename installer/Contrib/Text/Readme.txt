@@ -12,4 +12,4 @@ All the involved parties wish that any further attempts at creating a modded cli
 
 No other services provided by AlterWare are subject to change.
 
-- T7x Developer(s)
+- T7x Developers
