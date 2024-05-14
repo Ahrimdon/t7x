@@ -19,7 +19,7 @@
 2. Place in *Call of Duty Black Ops III* game directory and run
     > ***Note**: Run as Administrator if your game installation is in a protected folder*
 
-(*The installer is fully [Open Source](https://git.rimmyscorner.com/Rim/scriptable-client-installers), created using Nullsoft Scriptable Install System*)
+(*The installer is fully [Open Source](https://git.rimmyscorner.com/Rim/t7x/src/branch/main/installer/t7x_Installer.nsi), created using Nullsoft Scriptable Install System*)
 
 ## Download
 Clone the Git repository or download as ZIP.
@@ -27,7 +27,7 @@ Clone the Git repository or download as ZIP.
 - <u>**Download Release**</u>
   - Click on `Releases` at the top and navigate to the latest release
   - Download `t7x.zip`
-  - If you plan on running a server, download `T7xDedicatedConfigs.zip`
+  - If you plan on running a server, download `T7DedicatedConfigs.zip`
 
 - <u>**Download ZIP**</u>
   - Click on the three dots at the top of the repo ( `◘◘◘` )
@@ -90,12 +90,12 @@ If you don't have `git` installed on your machine, follow these steps:
 ### Build
 
 1. Clone the Git repository using `git clone https://git.rimmyscorner.com/Rim/t7x.git` (It is recommended to clone, however you can `Download ZIP` as all submodules have been localized).
-2. Run `generate.bat` to initialize the submodules and build the VS .sln file.
+2. Run `generate.bat` to initialize the submodules and build the VS `.sln` file.
 3. Open the project in Visual Studio, change the top drop down lists to `Release`, `x64`. You can also modify (or leave same) the Visual Studio edition/path in the `build.bat` file and build the solution via the batch script.
 4. Build the application.
 <br>
 
-## T7 Server Config
+# T7 Server Config
 Config for T7 Dedicated Servers for use with the T7x Client.
 
 ## How to use
