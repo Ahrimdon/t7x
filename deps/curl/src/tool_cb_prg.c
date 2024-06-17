@@ -38,8 +38,6 @@
 
 #include "memdebug.h" /* keep this as LAST include */
 
-#define MAX_BARLENGTH 256
-
 #ifdef HAVE_TERMIOS_H
 #  include <termios.h>
 #elif defined(HAVE_TERMIO_H)
@@ -80,16 +78,11 @@ static const unsigned int sinus[] = {
 
 static void fly(struct ProgressData *bar, bool moved)
 {
-  char buf[MAX_BARLENGTH + 2];
+  char buf[256];
   int pos;
   int check = bar->width - 2;
 
-  /* bar->width is range checked when assigned */
-  DEBUGASSERT(bar->width <= MAX_BARLENGTH);
-  memset(buf, ' ', bar->width);
-  buf[bar->width] = '\r';
-  buf[bar->width + 1] = '\0';
-
+  msnprintf(buf, sizeof(buf), "%*s\r", bar->width-1, " ");
   memcpy(&buf[bar->bar], "-=O=-", 5);
 
   pos = sinus[bar->tick%200] / (1000000 / check);
@@ -120,6 +113,8 @@ static void fly(struct ProgressData *bar, bool moved)
 /*
 ** callback for CURLOPT_XFERINFOFUNCTION
 */
+
+#define MAX_BARLENGTH 256
 
 #if (SIZEOF_CURL_OFF_T < 8)
 #error "too small curl_off_t"
@@ -254,7 +249,7 @@ void progressbarinit(struct ProgressData *bar,
     struct winsize ts;
     if(!ioctl(STDIN_FILENO, TIOCGWINSZ, &ts))
       cols = ts.ws_col;
-#elif defined(_WIN32)
+#elif defined(WIN32)
     {
       HANDLE  stderr_hnd = GetStdHandle(STD_ERROR_HANDLE);
       CONSOLE_SCREEN_BUFFER_INFO console_info;

@@ -71,6 +71,8 @@ static void websocket(CURL *curl)
   websocket_close(curl);
 }
 
+extern struct libtest_trace_cfg libtest_debug_config;
+
 int test(char *URL)
 {
   CURL *curl;

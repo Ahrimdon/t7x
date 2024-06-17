@@ -43,7 +43,6 @@ struct Curl_easy;
 struct Curl_cfilter;
 struct ssl_primary_config;
 struct ssl_config_data;
-struct ssl_peer;
 
 struct gtls_instance {
   gnutls_session_t session;
@@ -57,7 +56,7 @@ CURLcode
 gtls_client_init(struct Curl_easy *data,
                  struct ssl_primary_config *config,
                  struct ssl_config_data *ssl_config,
-                 struct ssl_peer *peer,
+                 const char *hostname,
                  struct gtls_instance *gtls,
                  long *pverifyresult);
 
@@ -66,7 +65,8 @@ Curl_gtls_verifyserver(struct Curl_easy *data,
                        gnutls_session_t session,
                        struct ssl_primary_config *config,
                        struct ssl_config_data *ssl_config,
-                       struct ssl_peer *peer,
+                       const char *hostname,
+                       const char *dispname,
                        const char *pinned_key);
 
 extern const struct Curl_ssl Curl_ssl_gnutls;

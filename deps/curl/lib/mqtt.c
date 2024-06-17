@@ -616,6 +616,9 @@ static void mqstate(struct Curl_easy *data,
 }
 
 
+/* for the publish packet */
+#define MQTT_HEADER_LEN 5    /* max 5 bytes */
+
 static CURLcode mqtt_read_publish(struct Curl_easy *data, bool *done)
 {
   CURLcode result = CURLE_OK;
@@ -674,6 +677,7 @@ MQTT_SUBACK_COMING:
     /* FALLTHROUGH */
   case MQTT_PUB_REMAIN: {
     /* read rest of packet, but no more. Cap to buffer size */
+    struct SingleRequest *k = &data->req;
     size_t rest = mq->npacket;
     if(rest > (size_t)data->set.buffer_size)
       rest = (size_t)data->set.buffer_size;
@@ -689,8 +693,13 @@ MQTT_SUBACK_COMING:
       result = CURLE_PARTIAL_FILE;
       goto end;
     }
+    Curl_debug(data, CURLINFO_DATA_IN, (char *)pkt, (size_t)nread);
 
     mq->npacket -= nread;
+    k->bytecount += nread;
+    result = Curl_pgrsSetDownloadCounter(data, k->bytecount);
+    if(result)
+      goto end;
 
     /* if QoS is set, message contains packet id */
 

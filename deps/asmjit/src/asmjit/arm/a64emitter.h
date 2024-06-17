@@ -71,7 +71,7 @@ ASMJIT_BEGIN_SUB_NAMESPACE(a64)
 //! ARM emitter.
 //!
 //! NOTE: This class cannot be instantiated, you can only cast to it and use it as emitter that emits to either
-//! \ref Assembler, \ref Builder, or \ref Compiler (use withcaution with \ref Compiler as it expects virtual
+//! \ref Assembler, \ref Builder, or \ref Compiler (use with caution with \ref Compiler as it expects virtual
 //! registers to be used).
 template<typename This>
 struct EmitterExplicitT {
@@ -79,10 +79,21 @@ struct EmitterExplicitT {
 
   // These two are unfortunately reported by the sanitizer. We know what we do, however, the sanitizer doesn't.
   // I have tried to use reinterpret_cast instead, but that would generate bad code when compiled by MSC.
-  ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF inline This* _emitter() noexcept { return static_cast<This*>(this); }
-  ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF inline const This* _emitter() const noexcept { return static_cast<const This*>(this); }
+  ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF ASMJIT_INLINE_NODEBUG This* _emitter() noexcept { return static_cast<This*>(this); }
+  ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF ASMJIT_INLINE_NODEBUG const This* _emitter() const noexcept { return static_cast<const This*>(this); }
 
   //! \endcond
+
+
+  //! \name Native Registers
+  //! \{
+
+  //! Returns either 32-bit or 64-bit GP register of the given `id` depending on the emitter's architecture.
+  inline Gp gpz(uint32_t id) const noexcept { return Gp(_emitter()->_gpSignature, id); }
+  //! Clones the given `reg` to either 32-bit or 64-bit GP register depending on the emitter's architecture.
+  inline Gp gpz(const Gp& reg) const noexcept { return Gp(_emitter()->_gpSignature, reg.id()); }
+
+  //! \}
 
   //! \name General Purpose Instructions
   //! \{
@@ -513,6 +524,8 @@ struct EmitterExplicitT {
   ASMJIT_INST_2x(ldxr, Ldxr, Gp, Mem)
   ASMJIT_INST_2x(ldxrb, Ldxrb, Gp, Mem)
   ASMJIT_INST_2x(ldxrh, Ldxrh, Gp, Mem)
+
+  ASMJIT_INST_2x(prfm, Prfm, Imm, Mem)
 
   ASMJIT_INST_2x(stadd, Stadd, Gp, Mem)
   ASMJIT_INST_2x(staddb, Staddb, Gp, Mem)

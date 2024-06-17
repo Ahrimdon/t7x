@@ -132,8 +132,8 @@ CodeHolder::~CodeHolder() noexcept {
   CodeHolder_resetInternal(this, ResetPolicy::kHard);
 }
 
-// CodeHolder - Init & Reset
-// =========================
+// CodeHolder - Initialization & Reset
+// ===================================
 
 inline void CodeHolder_setSectionDefaultName(
   Section* section,
@@ -908,7 +908,7 @@ size_t CodeHolder::codeSize() const noexcept {
     }
   }
 
-  if ((sizeof(uint64_t) > sizeof(size_t) && offset > SIZE_MAX) || of)
+  if ((sizeof(uint64_t) > sizeof(size_t) && offset > uint64_t(SIZE_MAX)) || of)
     return SIZE_MAX;
 
   return size_t(offset);

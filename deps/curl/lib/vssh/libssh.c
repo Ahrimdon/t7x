@@ -93,7 +93,6 @@
 #if defined(__GNUC__) &&                        \
   (LIBSSH_VERSION_MINOR >= 10) ||               \
   (LIBSSH_VERSION_MAJOR > 0)
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
@@ -1160,23 +1159,13 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
         break;
       }
       else if(statvfs) {
-        #ifdef _MSC_VER
-        #define LIBSSH_VFS_SIZE_MASK "I64u"
-        #else
-        #define LIBSSH_VFS_SIZE_MASK PRIu64
-        #endif
         char *tmp = aprintf("statvfs:\n"
-                            "f_bsize: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_frsize: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_blocks: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_bfree: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_bavail: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_files: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_ffree: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_favail: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_fsid: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_flag: %" LIBSSH_VFS_SIZE_MASK "\n"
-                            "f_namemax: %" LIBSSH_VFS_SIZE_MASK "\n",
+                            "f_bsize: %llu\n" "f_frsize: %llu\n"
+                            "f_blocks: %llu\n" "f_bfree: %llu\n"
+                            "f_bavail: %llu\n" "f_files: %llu\n"
+                            "f_ffree: %llu\n" "f_favail: %llu\n"
+                            "f_fsid: %llu\n" "f_flag: %llu\n"
+                            "f_namemax: %llu\n",
                             statvfs->f_bsize, statvfs->f_frsize,
                             statvfs->f_blocks, statvfs->f_bfree,
                             statvfs->f_bavail, statvfs->f_files,
@@ -1477,7 +1466,13 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
             state(data, SSH_STOP);
             break;
           }
+          /* since this counts what we send to the client, we include the
+             newline in this counter */
+          data->req.bytecount += sshc->readdir_len + 1;
 
+          /* output debug output if that is requested */
+          Curl_debug(data, CURLINFO_DATA_OUT, (char *)sshc->readdir_filename,
+                     sshc->readdir_len);
         }
         else {
           if(Curl_dyn_add(&sshc->readdir_buf, sshc->readdir_longentry)) {
@@ -1569,6 +1564,12 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
                                    Curl_dyn_ptr(&sshc->readdir_buf),
                                    Curl_dyn_len(&sshc->readdir_buf));
 
+      if(!result) {
+        /* output debug output if that is requested */
+        Curl_debug(data, CURLINFO_DATA_OUT, Curl_dyn_ptr(&sshc->readdir_buf),
+                   Curl_dyn_len(&sshc->readdir_buf));
+        data->req.bytecount += Curl_dyn_len(&sshc->readdir_buf);
+      }
       ssh_string_free_char(sshc->readdir_tmp);
       sshc->readdir_tmp = NULL;
 
@@ -1962,9 +1963,10 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
       ssh_disconnect(sshc->ssh_session);
       if(!ssh_version(SSH_VERSION_INT(0, 10, 0))) {
         /* conn->sock[FIRSTSOCKET] is closed by ssh_disconnect behind our back,
-           tell the connection to forget about it. This libssh
+           explicitly mark it as closed with the memdebug macro. This libssh
            bug is fixed in 0.10.0. */
-        Curl_conn_forget_socket(data, FIRSTSOCKET);
+        fake_sclose(conn->sock[FIRSTSOCKET]);
+        conn->sock[FIRSTSOCKET] = CURL_SOCKET_BAD;
       }
 
       SSH_STRING_FREE_CHAR(sshc->homedir);
@@ -2956,11 +2958,5 @@ void Curl_ssh_version(char *buffer, size_t buflen)
 {
   (void)msnprintf(buffer, buflen, "libssh/%s", ssh_version(0));
 }
-
-#if defined(__GNUC__) &&                        \
-  (LIBSSH_VERSION_MINOR >= 10) ||               \
-  (LIBSSH_VERSION_MAJOR > 0)
-#pragma GCC diagnostic pop
-#endif
 
 #endif                          /* USE_LIBSSH */

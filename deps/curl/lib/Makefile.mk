@@ -145,10 +145,7 @@ ifneq ($(findstring -rtmp,$(CFG)),)
   CPPFLAGS += -DUSE_LIBRTMP
   CPPFLAGS += -I"$(LIBRTMP_PATH)"
   _LDFLAGS += -L"$(LIBRTMP_PATH)/librtmp"
-  _LIBS += -lrtmp
-  ifdef WIN32
-    _LIBS += -lwinmm
-  endif
+  _LIBS += -lrtmp -lwinmm
   ZLIB := 1
 endif
 

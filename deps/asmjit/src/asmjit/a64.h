@@ -26,16 +26,16 @@
 //!
 //! ### Register Operands
 //!
-//!   - \ref arm::Reg - Base class for any AArch32/AArch64 register.
-//!     - \ref arm::Gp - General purpose register:
-//!       - \ref arm::GpW - 32-bit register.
-//!       - \ref arm::GpX - 64-bit register.
-//!     - \ref arm::Vec - Vector (SIMD) register:
-//!       - \ref arm::VecB - 8-bit SIMD register.
-//!       - \ref arm::VecH - 16-bit SIMD register.
-//!       - \ref arm::VecS - 32-bit SIMD register.
-//!       - \ref arm::VecD - 64-bit SIMD register.
-//!       - \ref arm::VecV - 128-bit SIMD register.
+//!   - \ref arm::Reg - Base class of all AArch32/AArch64 registers.
+//!     - \ref a64::Gp - General purpose register (AArch64):
+//!       - \ref a64::GpW - 32-bit general purpose register (AArch64).
+//!       - \ref a64::GpX - 64-bit general purpose register (AArch64).
+//!     - \ref a64::Vec - Vector (SIMD) register:
+//!       - \ref a64::VecB - 8-bit SIMD register.
+//!       - \ref a64::VecH - 16-bit SIMD register.
+//!       - \ref a64::VecS - 32-bit SIMD register.
+//!       - \ref a64::VecD - 64-bit SIMD register.
+//!       - \ref a64::VecV - 128-bit SIMD register.
 //!
 //! ### Memory Operands
 //!

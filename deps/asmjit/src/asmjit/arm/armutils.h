@@ -6,6 +6,7 @@
 #ifndef ASMJIT_ARM_ARMUTILS_H_INCLUDED
 #define ASMJIT_ARM_ARMUTILS_H_INCLUDED
 
+#include "../core/support.h"
 #include "../arm/armglobals.h"
 
 ASMJIT_BEGIN_SUB_NAMESPACE(arm)
@@ -15,6 +16,38 @@ ASMJIT_BEGIN_SUB_NAMESPACE(arm)
 
 //! Public utilities and helpers for targeting AArch32 and AArch64 architectures.
 namespace Utils {
+
+//! Encodes a 12-bit immediate part of opcode that ise used by a standard 32-bit ARM encoding.
+ASMJIT_MAYBE_UNUSED
+static inline bool encodeAArch32Imm(uint64_t imm, uint32_t* encodedImmOut) noexcept {
+  if (imm & 0xFFFFFFFF00000000u)
+    return false;
+
+  uint32_t v = uint32_t(imm);
+  uint32_t r = 0;
+
+  if (v <= 0xFFu) {
+    *encodedImmOut = v;
+    return true;
+  }
+
+  // Rotate if there are bits on both ends (LSB and MSB)
+  // (otherwise we would not be able to calculate the rotation with ctz).
+  if (v & 0xFF0000FFu) {
+    v = Support::ror(v, 16);
+    r = 16u;
+  }
+
+  uint32_t n = Support::ctz(v) & ~0x1u;
+  r = (r - n) & 0x1Eu;
+  v = Support::ror(v, n);
+
+  if (v > 0xFFu)
+    return false;
+
+  *encodedImmOut = v | (r << 7);
+  return true;
+}
 
 //! Decomposed fields of a logical immediate value.
 struct LogicalImm {
@@ -92,6 +125,13 @@ ASMJIT_MAYBE_UNUSED
 static ASMJIT_INLINE_NODEBUG bool isLogicalImm(uint64_t imm, uint32_t width) noexcept {
   LogicalImm dummy;
   return encodeLogicalImm(imm, width, &dummy);
+}
+
+//! Returns true if the given `imm` value is encodable as an immediate with `add` and `sub` instructions on AArch64.
+//! These two instructions can encode 12-bit immediate value optionally shifted left by 12 bits.
+ASMJIT_MAYBE_UNUSED
+static ASMJIT_INLINE_NODEBUG bool isAddSubImm(uint64_t imm) noexcept {
+  return imm <= 0xFFFu || (imm & ~uint64_t(0xFFFu << 12)) == 0;
 }
 
 //! Returns true if the given `imm` value is a byte mask. Byte mask has each byte part of the value set to either

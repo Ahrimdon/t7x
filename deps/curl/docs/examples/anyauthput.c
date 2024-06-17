@@ -33,7 +33,7 @@
 
 #include <curl/curl.h>
 
-#ifdef _WIN32
+#ifdef WIN32
 #  define FILENO(fp) _fileno(fp)
 #else
 #  define FILENO(fp) fileno(fp)

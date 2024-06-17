@@ -28,13 +28,13 @@
 #include <stdio.h>
 #include <curl/curl.h>
 
-#ifndef _WIN32
+#ifndef WIN32
 #include <net/if.h>
 #endif
 
 int main(void)
 {
-#ifndef _WIN32
+#ifndef WIN32
   /* Windows users need to find how to use if_nametoindex() */
   CURL *curl;
   CURLcode res;

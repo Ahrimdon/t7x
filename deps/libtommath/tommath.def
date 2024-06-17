@@ -125,6 +125,7 @@ EXPORTS
     mp_to_ubin
     mp_ubin_size
     mp_unpack
+    mp_warray_free
     mp_xor
     mp_zero
     MP_MUL_KARATSUBA_CUTOFF

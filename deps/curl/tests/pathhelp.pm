@@ -789,7 +789,6 @@ sub exe_ext {
         $^O eq 'dos' || $^O eq 'os2') {
         return '.exe';
     }
-    return '';
 }
 
 1;    # End of module

@@ -3,9 +3,9 @@
 #
 
 #version of library
-VERSION=1.2.1-develop
-VERSION_PC=1.2.1
-VERSION_SO=3:1:2
+VERSION=1.3.0-develop
+VERSION_PC=1.3.0
+VERSION_SO=4:0:3
 
 PLATFORM := $(shell uname | sed -e 's/_.*//')
 
@@ -97,7 +97,7 @@ endif
 endif # COMPILE_SIZE
 
 ifneq ($(findstring clang,$(CC)),)
-LTM_CFLAGS += -Wno-typedef-redefinition -Wno-tautological-compare -Wno-builtin-requires-header
+LTM_CFLAGS += -Wno-unknown-warning-option -Wno-typedef-redefinition -Wno-tautological-compare -Wno-builtin-requires-header -Wno-incomplete-setjmp-declaration
 ifdef IGNORE_SPEED
 #for dead code eliminiation
 LTM_CFLAGS += -O1

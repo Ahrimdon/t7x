@@ -26,14 +26,8 @@
 my $version="7.41.0";
 
 use POSIX qw(strftime);
-my @ts;
-if (defined($ENV{SOURCE_DATE_EPOCH})) {
-    @ts = localtime($ENV{SOURCE_DATE_EPOCH});
-} else {
-    @ts = localtime;
-}
-my $date = strftime "%b %e, %Y", @ts;
-my $year = strftime "%Y", @ts;
+my $date = strftime "%b %e, %Y", localtime;
+my $year = strftime "%Y", localtime;
 
 print <<HEADER
 .\\" **************************************************************************

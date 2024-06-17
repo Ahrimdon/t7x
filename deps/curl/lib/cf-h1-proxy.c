@@ -374,7 +374,7 @@ static CURLcode recv_CONNECT_resp(struct Curl_cfilter *cf,
   curl_socket_t tunnelsocket = Curl_conn_cf_get_socket(cf, data);
   char *linep;
   size_t perline;
-  int error, writetype;
+  int error;
 
 #define SELECT_OK      0
 #define SELECT_ERROR   1
@@ -386,12 +386,12 @@ static CURLcode recv_CONNECT_resp(struct Curl_cfilter *cf,
     return CURLE_OK;
 
   while(ts->keepon) {
-    ssize_t nread;
+    ssize_t gotbytes;
     char byte;
 
     /* Read one byte at a time to avoid a race condition. Wait at most one
        second before looping to ensure continuous pgrsUpdates. */
-    result = Curl_read(data, tunnelsocket, &byte, 1, &nread);
+    result = Curl_read(data, tunnelsocket, &byte, 1, &gotbytes);
     if(result == CURLE_AGAIN)
       /* socket buffer drained, return */
       return CURLE_OK;
@@ -404,7 +404,7 @@ static CURLcode recv_CONNECT_resp(struct Curl_cfilter *cf,
       break;
     }
 
-    if(nread <= 0) {
+    if(gotbytes <= 0) {
       if(data->set.proxyauth && data->state.authproxy.avail &&
          data->state.aptr.proxyuserpwd) {
         /* proxy auth was requested and there was proxy auth available,
@@ -437,11 +437,11 @@ static CURLcode recv_CONNECT_resp(struct Curl_cfilter *cf,
            properly to know when the end of the body is reached */
         CHUNKcode r;
         CURLcode extra;
-        size_t consumed = 0;
+        ssize_t tookcareof = 0;
 
         /* now parse the chunked piece of data so that we can
            properly tell when the stream ends */
-        r = Curl_httpchunk_read(data, &byte, 1, &consumed, &extra);
+        r = Curl_httpchunk_read(data, &byte, 1, &tookcareof, &extra);
         if(r == CHUNKE_STOP) {
           /* we're done reading chunks! */
           infof(data, "chunk reading DONE");
@@ -467,12 +467,15 @@ static CURLcode recv_CONNECT_resp(struct Curl_cfilter *cf,
     /* output debug if that is requested */
     Curl_debug(data, CURLINFO_HEADER_IN, linep, perline);
 
-    /* send the header to the callback */
-    writetype = CLIENTWRITE_HEADER | CLIENTWRITE_CONNECT |
-      (ts->headerlines == 1 ? CLIENTWRITE_STATUS : 0);
-    result = Curl_client_write(data, writetype, linep, perline);
-    if(result)
-      return result;
+    if(!data->set.suppress_connect_headers) {
+      /* send the header to the callback */
+      int writetype = CLIENTWRITE_HEADER | CLIENTWRITE_CONNECT |
+        (ts->headerlines == 1 ? CLIENTWRITE_STATUS : 0);
+
+      result = Curl_client_write(data, writetype, linep, perline);
+      if(result)
+        return result;
+    }
 
     result = Curl_bump_headersize(data, perline, TRUE);
     if(result)
@@ -499,7 +502,6 @@ static CURLcode recv_CONNECT_resp(struct Curl_cfilter *cf,
         else if(ts->chunked_encoding) {
           CHUNKcode r;
           CURLcode extra;
-          size_t consumed = 0;
 
           infof(data, "Ignore chunked response-body");
 
@@ -514,7 +516,8 @@ static CURLcode recv_CONNECT_resp(struct Curl_cfilter *cf,
 
           /* now parse the chunked piece of data so that we can properly
              tell when the stream ends */
-          r = Curl_httpchunk_read(data, linep + 1, 1, &consumed, &extra);
+          r = Curl_httpchunk_read(data, linep + 1, 1, &gotbytes,
+                                  &extra);
           if(r == CHUNKE_STOP) {
             /* we're done reading chunks! */
             infof(data, "chunk reading DONE");
@@ -1035,29 +1038,31 @@ out:
   return result;
 }
 
-static void cf_h1_proxy_adjust_pollset(struct Curl_cfilter *cf,
+static int cf_h1_proxy_get_select_socks(struct Curl_cfilter *cf,
                                         struct Curl_easy *data,
-                                        struct easy_pollset *ps)
+                                        curl_socket_t *socks)
 {
   struct h1_tunnel_state *ts = cf->ctx;
+  int fds;
 
-  if(!cf->connected) {
+  fds = cf->next->cft->get_select_socks(cf->next, data, socks);
+  if(!fds && cf->next->connected && !cf->connected) {
     /* If we are not connected, but the filter "below" is
      * and not waiting on something, we are tunneling. */
-    curl_socket_t sock = Curl_conn_cf_get_socket(cf, data);
+    socks[0] = Curl_conn_cf_get_socket(cf, data);
     if(ts) {
       /* when we've sent a CONNECT to a proxy, we should rather either
          wait for the socket to become readable to be able to get the
          response headers or if we're still sending the request, wait
          for write. */
-      if(ts->CONNECT.sending == HTTPSEND_REQUEST)
-        Curl_pollset_set_out_only(data, ps, sock);
-      else
-        Curl_pollset_set_in_only(data, ps, sock);
+      if(ts->CONNECT.sending == HTTPSEND_REQUEST) {
+        return GETSOCK_WRITESOCK(0);
+      }
+      return GETSOCK_READSOCK(0);
     }
-    else
-      Curl_pollset_set_out_only(data, ps, sock);
+    return GETSOCK_WRITESOCK(0);
   }
+  return fds;
 }
 
 static void cf_h1_proxy_destroy(struct Curl_cfilter *cf,
@@ -1088,7 +1093,7 @@ struct Curl_cftype Curl_cft_h1_proxy = {
   cf_h1_proxy_connect,
   cf_h1_proxy_close,
   Curl_cf_http_proxy_get_host,
-  cf_h1_proxy_adjust_pollset,
+  cf_h1_proxy_get_select_socks,
   Curl_cf_def_data_pending,
   Curl_cf_def_send,
   Curl_cf_def_recv,

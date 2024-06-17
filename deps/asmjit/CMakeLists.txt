@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 cmake_policy(PUSH)
 
-if(POLICY CMP0063)
+if (POLICY CMP0063)
   cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
 endif()
 
-if(POLICY CMP0092)
+if (POLICY CMP0092)
   cmake_policy(SET CMP0092 NEW) # Don't add -W3 warning level by default.
 endif()
 
@@ -33,15 +33,13 @@ if (DEFINED ASMJIT_BUILD_STATIC)
   set(ASMJIT_STATIC "${ASMJIT_BUILD_STATIC}")
 endif()
 
-# AsmJit - Configuration
-# ======================
+# AsmJit - Configuration - Build
+# ==============================
 
-# AsmJit testing.
 if (NOT DEFINED ASMJIT_TEST)
   set(ASMJIT_TEST FALSE)
 endif()
 
-# AsmJit build options
 if (NOT DEFINED ASMJIT_EMBED)
   set(ASMJIT_EMBED FALSE)
 endif()
@@ -54,15 +52,22 @@ if (NOT DEFINED ASMJIT_SANITIZE)
   set(ASMJIT_SANITIZE FALSE)
 endif()
 
-if (NOT DEFINED ASMJIT_NO_NATVIS)
-  set(ASMJIT_NO_NATVIS FALSE)
-endif()
-
 if (NOT DEFINED ASMJIT_NO_CUSTOM_FLAGS)
   set(ASMJIT_NO_CUSTOM_FLAGS FALSE)
 endif()
 
-# AsmJit backends selection.
+if (NOT DEFINED ASMJIT_NO_NATVIS)
+  set(ASMJIT_NO_NATVIS FALSE)
+endif()
+
+# EMBED implies STATIC.
+if (ASMJIT_EMBED AND NOT ASMJIT_STATIC)
+  set(ASMJIT_STATIC TRUE)
+endif()
+
+# AsmJit - Configuration - Backend
+# ================================
+
 if (NOT DEFINED ASMJIT_NO_X86)
   set(ASMJIT_NO_X86 FALSE)
 endif()
@@ -75,7 +80,9 @@ if (NOT DEFINED ASMJIT_NO_FOREIGN)
   set(ASMJIT_NO_FOREIGN FALSE)
 endif()
 
-# AsmJit features selection.
+# AsmJit - Configuration - Features
+# =================================
+
 if (NOT DEFINED ASMJIT_NO_DEPRECATED)
   set(ASMJIT_NO_DEPRECATED FALSE)
 endif()
@@ -89,19 +96,19 @@ if (NOT DEFINED ASMJIT_NO_JIT)
 endif()
 
 if (NOT DEFINED ASMJIT_NO_TEXT)
-  set(ASMJIT_NO_TEXT ${ASMJIT_NO_TEXT})
+  set(ASMJIT_NO_TEXT FALSE)
 endif()
 
 if (NOT DEFINED ASMJIT_NO_LOGGING)
-  set(ASMJIT_NO_LOGGING FALSE)
+  set(ASMJIT_NO_LOGGING ${ASMJIT_NO_TEXT})
 endif()
 
 if (NOT DEFINED ASMJIT_NO_VALIDATION)
-  set(ASMJIT_NO_VALIDATION ${ASMJIT_NO_VALIDATION})
+  set(ASMJIT_NO_VALIDATION FALSE)
 endif()
 
 if (NOT DEFINED ASMJIT_NO_INTROSPECTION)
-  set(ASMJIT_NO_INTROSPECTION ${ASMJIT_NO_INTROSPECTION})
+  set(ASMJIT_NO_INTROSPECTION FALSE)
 endif()
 
 if (NOT DEFINED ASMJIT_NO_BUILDER)
@@ -109,16 +116,17 @@ if (NOT DEFINED ASMJIT_NO_BUILDER)
 endif()
 
 if (NOT DEFINED ASMJIT_NO_COMPILER)
-  set(ASMJIT_NO_BUILDER ${ASMJIT_NO_BUILDER})
+  if (ASMJIT_NO_BUILDER OR ASMJIT_NO_INTROSPECTION)
+    set(ASMJIT_NO_COMPILER TRUE)
+  else()
+    set(ASMJIT_NO_COMPILER FALSE)
+  endif()
 endif()
 
-# EMBED implies STATIC.
-if (ASMJIT_EMBED AND NOT ASMJIT_STATIC)
-  set(ASMJIT_STATIC TRUE)
-endif()
+# AsmJit - Configuration - CMake Introspection
+# ============================================
 
 set(ASMJIT_DIR              "${CMAKE_CURRENT_LIST_DIR}"  CACHE PATH "Location of 'asmjit'")
-
 set(ASMJIT_TEST             "${ASMJIT_TEST}"             CACHE BOOL "Build 'asmjit' test applications")
 set(ASMJIT_EMBED            "${ASMJIT_EMBED}"            CACHE BOOL "Embed 'asmjit' library (no targets)")
 set(ASMJIT_STATIC           "${ASMJIT_STATIC}"           CACHE BOOL "Build 'asmjit' library as static")
@@ -212,11 +220,7 @@ function(asmjit_add_target target target_type)
     set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS " ${link_flag}")
   endforeach()
 
-  if (${CMAKE_VERSION} VERSION_LESS "3.8.0")
-    set_property(TARGET ${target} PROPERTY CXX_STANDARD 11)
-  else()
-    target_compile_features(${target} PUBLIC cxx_std_11)
-  endif()
+  target_compile_features(${target} PUBLIC cxx_std_11)
   set_property(TARGET ${target} PROPERTY CXX_EXTENSIONS NO)
   set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
   target_compile_options(${target} PRIVATE ${X_CFLAGS} ${ASMJIT_SANITIZE_CFLAGS} $<$<CONFIG:Debug>:${X_CFLAGS_DBG}> $<$<NOT:$<CONFIG:Debug>>:${X_CFLAGS_REL}>)
@@ -228,17 +232,6 @@ endfunction()
 
 # AsmJit - Compiler Support
 # =========================
-
-set(ASMJIT_INCLUDE_DIRS "${ASMJIT_DIR}/src")     # Include directory is the same as source dir.
-set(ASMJIT_DEPS "")                              # AsmJit dependencies (libraries) for the linker.
-set(ASMJIT_LIBS "")                              # Dependencies of libs/apps that want to use AsmJit.
-set(ASMJIT_CFLAGS "")                            # Public compiler flags.
-set(ASMJIT_PRIVATE_CFLAGS "")                    # Private compiler flags independent of build type.
-set(ASMJIT_PRIVATE_CFLAGS_DBG "")                # Private compiler flags used by debug builds.
-set(ASMJIT_PRIVATE_CFLAGS_REL "")                # Private compiler flags used by release builds.
-set(ASMJIT_PRIVATE_LFLAGS "")                    # Private linker flags.
-set(ASMJIT_SANITIZE_CFLAGS "")                   # Compiler flags required by currently enabled sanitizers.
-set(ASMJIT_SANITIZE_LFLAGS "")                   # Linker flags required by currently enabled sanitizers.
 
 # We will have to keep this most likely forever as some users may still be using it.
 set(ASMJIT_INCLUDE_DIR "${ASMJIT_INCLUDE_DIRS}")
@@ -282,7 +275,7 @@ endif()
 
 # Support for sanitizers.
 if (ASMJIT_SANITIZE)
-  ASMJIT_detect_sanitizers(ASMJIT_SANITIZE_CFLAGS ${ASMJIT_SANITIZE})
+  asmjit_detect_sanitizers(ASMJIT_SANITIZE_CFLAGS ${ASMJIT_SANITIZE})
   if (ASMJIT_SANITIZE_CFLAGS)
     message("-- Enabling sanitizers: '${ASMJIT_SANITIZE_CFLAGS}'")
 
@@ -363,21 +356,21 @@ else()
   set(ASMJIT_TARGET_TYPE "SHARED")
 endif()
 
-foreach(build_option ASMJIT_STATIC
+foreach(build_option # AsmJit build options.
+                     ASMJIT_STATIC
+                     ASMJIT_NO_DEPRECATED
                      # AsmJit backends selection.
                      ASMJIT_NO_X86
                      ASMJIT_NO_AARCH64
                      ASMJIT_NO_FOREIGN
                      # AsmJit features selection.
-                     ASMJIT_NO_DEPRECATED
-                     ASMJIT_NO_SHM_OPEN
                      ASMJIT_NO_JIT
                      ASMJIT_NO_TEXT
                      ASMJIT_NO_LOGGING
-                     ASMJIT_NO_BUILDER
-                     ASMJIT_NO_COMPILER
+                     ASMJIT_NO_INTROSPECTION
                      ASMJIT_NO_VALIDATION
-                     ASMJIT_NO_INTROSPECTION)
+                     ASMJIT_NO_BUILDER
+                     ASMJIT_NO_COMPILER)
   if (${build_option})
     List(APPEND ASMJIT_CFLAGS         "-D${build_option}")
     List(APPEND ASMJIT_PRIVATE_CFLAGS "-D${build_option}")
@@ -388,7 +381,7 @@ endforeach()
 # =======================
 
 if (WIN32)
-  if(CMAKE_LINKER MATCHES "link\\.exe" OR CMAKE_LINKER MATCHES "lld-link\\.exe")
+  if (CMAKE_LINKER MATCHES "link\\.exe" OR CMAKE_LINKER MATCHES "lld-link\\.exe")
     set(ASMJIT_LINKER_SUPPORTS_NATVIS TRUE)
   endif()
 endif()
@@ -443,6 +436,8 @@ set(ASMJIT_SRC_LIST
   asmjit/core/globals.h
   asmjit/core/inst.cpp
   asmjit/core/inst.h
+  asmjit/core/instdb.cpp
+  asmjit/core/instdb_p.h
   asmjit/core/jitallocator.cpp
   asmjit/core/jitallocator.h
   asmjit/core/jitruntime.cpp
@@ -562,9 +557,7 @@ foreach(src_file ${ASMJIT_SRC_LIST})
   endif()
 endforeach()
 
-if (NOT ${CMAKE_VERSION} VERSION_LESS "3.8.0")
-  source_group(TREE "${ASMJIT_DIR}" FILES ${ASMJIT_SRC})
-endif()
+source_group(TREE "${ASMJIT_DIR}" FILES ${ASMJIT_SRC})
 
 # AsmJit - Summary
 # ================
@@ -597,7 +590,7 @@ if (NOT ASMJIT_EMBED)
                              $<BUILD_INTERFACE:${ASMJIT_INCLUDE_DIRS}>
                              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-  # Add blend2d::blend2d alias.
+  # Add asmjit::asmjit alias.
   add_library(asmjit::asmjit ALIAS asmjit)
   # TODO: [CMAKE] Deprecated alias - we use projectname::libraryname convention now.
   add_library(AsmJit::AsmJit ALIAS asmjit)
@@ -662,6 +655,7 @@ if (NOT ASMJIT_EMBED)
                       CFLAGS_REL ${ASMJIT_PRIVATE_CFLAGS_REL})
 
     foreach(_target asmjit_test_emitters
+                    asmjit_test_execute
                     asmjit_test_x86_sections)
       asmjit_add_target(${_target} TEST
                         SOURCES    test/${_target}.cpp
@@ -682,11 +676,29 @@ if (NOT ASMJIT_EMBED)
 
     if (NOT (ASMJIT_NO_BUILDER OR ASMJIT_NO_COMPILER))
       # Vectorcall tests and XMM tests require at least SSE2 in 32-bit mode (in 64-bit mode it's implicit).
-      set(sse2_flags "")
-      if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" OR "x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC")
-        asmjit_detect_cflags(sse2_flags "-arch:SSE2")
-      else()
-        asmjit_detect_cflags(sse2_flags "-msse2")
+      # Some compilers don't like passing -msse2 for 64-bit targets, and some compilers targeting non-x86
+      # would pass "-msse2" compile flag check, but with a warning not detected by CMake. Thus, verify that
+      # our target is really 32-bit X86 and only use -msse2 or -arch:SSE2 flags when necessary.
+      set(ASMJIT_SSE2_CFLAGS "")
+
+      check_cxx_source_compiles("
+        #if defined(_M_IX86) || defined(__X86__) || defined(__i386__)
+          int target_is_32_bit_x86() { return 1; }
+        #else
+          // Compile error...
+        #endif
+
+        int main() {
+          return target_is_32_bit_x86();
+        }
+        " ASMJIT_TARGET_IS_32_BIT_X86)
+
+      if (ASMJIT_TARGET_IS_32_BIT_X86)
+        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" OR "x${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "xMSVC")
+          asmjit_detect_cflags(ASMJIT_SSE2_CFLAGS "-arch:SSE2")
+        else()
+          asmjit_detect_cflags(ASMJIT_SSE2_CFLAGS "-msse2")
+        endif()
       endif()
       asmjit_add_target(asmjit_test_compiler TEST
                         SOURCES    test/asmjit_test_compiler.cpp
@@ -694,7 +706,7 @@ if (NOT ASMJIT_EMBED)
                                    test/asmjit_test_compiler_a64.cpp
                                    test/asmjit_test_compiler_x86.cpp
                         LIBRARIES  asmjit::asmjit
-                        CFLAGS     ${ASMJIT_PRIVATE_CFLAGS} ${sse2_flags}
+                        CFLAGS     ${ASMJIT_PRIVATE_CFLAGS} ${ASMJIT_SSE2_CFLAGS}
                         CFLAGS_DBG ${ASMJIT_PRIVATE_CFLAGS_DBG}
                         CFLAGS_REL ${ASMJIT_PRIVATE_CFLAGS_REL})
     endif()

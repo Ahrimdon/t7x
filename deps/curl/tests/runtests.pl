@@ -23,8 +23,6 @@
 #
 ###########################################################################
 
-# For documentation, run `man ./runtests.1` and see README.md.
-
 # Experimental hooks are available to run tests remotely on machines that
 # are able to run curl but are unable to run the test harness.
 # The following sections need to be modified:
@@ -1505,7 +1503,7 @@ sub singletest_check {
 
     }
     else {
-        $ok .= "-"; # proxy not checked
+        $ok .= "-"; # protocol not checked
     }
 
     my $outputok;

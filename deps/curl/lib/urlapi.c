@@ -206,7 +206,7 @@ size_t Curl_is_absolute_url(const char *url, char *buf, size_t buflen,
   (void)buflen; /* only used in debug-builds */
   if(buf)
     buf[0] = 0; /* always leave a defined value in buf */
-#ifdef _WIN32
+#ifdef WIN32
   if(guess_scheme && STARTS_WITH_DRIVE_PREFIX(url))
     return 0;
 #endif
@@ -446,7 +446,7 @@ static CURLUcode parse_hostname_login(struct Curl_URL *u,
 
   /* if this is a known scheme, get some details */
   if(u->scheme)
-    h = Curl_get_scheme_handler(u->scheme);
+    h = Curl_builtin_scheme(u->scheme, CURL_ZERO_TERMINATED);
 
   /* We could use the login information in the URL so extract it. Only parse
      options if the handler says we should. Note that 'h' might be NULL! */
@@ -1056,7 +1056,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
           ptr += 9; /* now points to the slash after the host */
         }
         else {
-#if defined(_WIN32)
+#if defined(WIN32)
           size_t len;
 
           /* the host name, NetBIOS computer name, can not contain disallowed
@@ -1095,7 +1095,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
       /* no host for file: URLs by default */
       Curl_dyn_reset(&host);
 
-#if !defined(_WIN32) && !defined(MSDOS) && !defined(__CYGWIN__)
+#if !defined(MSDOS) && !defined(WIN32) && !defined(__CYGWIN__)
     /* Don't allow Windows drive letters when not in Windows.
      * This catches both "file:/c:" and "file:c:" */
     if(('/' == path[0] && STARTS_WITH_URL_DRIVE_PREFIX(&path[1])) ||
@@ -1129,7 +1129,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
       }
 
       schemep = schemebuf;
-      if(!Curl_get_scheme_handler(schemep) &&
+      if(!Curl_builtin_scheme(schemep, CURL_ZERO_TERMINATED) &&
          !(flags & CURLU_NON_SUPPORT_SCHEME)) {
         result = CURLUE_UNSUPPORTED_SCHEME;
         goto fail;
@@ -1224,14 +1224,14 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
       if(flags & CURLU_URLENCODE) {
         struct dynbuf enc;
         Curl_dyn_init(&enc, CURL_MAX_INPUT_LENGTH);
-        if(urlencode_str(&enc, fragment + 1, fraglen - 1, TRUE, FALSE)) {
+        if(urlencode_str(&enc, fragment + 1, fraglen, TRUE, FALSE)) {
           result = CURLUE_OUT_OF_MEMORY;
           goto fail;
         }
         u->fragment = Curl_dyn_ptr(&enc);
       }
       else {
-        u->fragment = Curl_strndup(fragment + 1, fraglen - 1);
+        u->fragment = Curl_memdup(fragment + 1, fraglen);
         if(!u->fragment) {
           result = CURLUE_OUT_OF_MEMORY;
           goto fail;
@@ -1260,11 +1260,12 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
         u->query = Curl_dyn_ptr(&enc);
       }
       else {
-        u->query = Curl_strndup(query + 1, qlen - 1);
+        u->query = Curl_memdup(query + 1, qlen);
         if(!u->query) {
           result = CURLUE_OUT_OF_MEMORY;
           goto fail;
         }
+        u->query[qlen - 1] = 0;
       }
     }
     else {
@@ -1294,11 +1295,12 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
   }
   else {
     if(!u->path) {
-      u->path = Curl_strndup(path, pathlen);
+      u->path = Curl_memdup(path, pathlen + 1);
       if(!u->path) {
         result = CURLUE_OUT_OF_MEMORY;
         goto fail;
       }
+      u->path[pathlen] = 0;
       path = u->path;
     }
     else if(flags & CURLU_URLENCODE)
@@ -1350,7 +1352,7 @@ static CURLUcode parseurl_and_replace(const char *url, CURLU *u,
  */
 CURLU *curl_url(void)
 {
-  return calloc(1, sizeof(struct Curl_URL));
+  return calloc(sizeof(struct Curl_URL), 1);
 }
 
 void curl_url_cleanup(CURLU *u)
@@ -1372,7 +1374,7 @@ void curl_url_cleanup(CURLU *u)
 
 CURLU *curl_url_dup(const CURLU *in)
 {
-  struct Curl_URL *u = calloc(1, sizeof(struct Curl_URL));
+  struct Curl_URL *u = calloc(sizeof(struct Curl_URL), 1);
   if(u) {
     DUP(u, in, scheme);
     DUP(u, in, user);
@@ -1445,7 +1447,8 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
     if(!ptr && (flags & CURLU_DEFAULT_PORT) && u->scheme) {
       /* there's no stored port number, but asked to deliver
          a default one for the scheme */
-      const struct Curl_handler *h = Curl_get_scheme_handler(u->scheme);
+      const struct Curl_handler *h =
+        Curl_builtin_scheme(u->scheme, CURL_ZERO_TERMINATED);
       if(h) {
         msnprintf(portbuf, sizeof(portbuf), "%u", h->defport);
         ptr = portbuf;
@@ -1454,7 +1457,8 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
     else if(ptr && u->scheme) {
       /* there is a stored port number, but ask to inhibit if
          it matches the default one for the scheme */
-      const struct Curl_handler *h = Curl_get_scheme_handler(u->scheme);
+      const struct Curl_handler *h =
+        Curl_builtin_scheme(u->scheme, CURL_ZERO_TERMINATED);
       if(h && (h->defport == u->portnum) &&
          (flags & CURLU_NO_DEFAULT_PORT))
         ptr = NULL;
@@ -1499,7 +1503,7 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
       else
         return CURLUE_NO_SCHEME;
 
-      h = Curl_get_scheme_handler(scheme);
+      h = Curl_builtin_scheme(scheme, CURL_ZERO_TERMINATED);
       if(!port && (flags & CURLU_DEFAULT_PORT)) {
         /* there's no stored port number, but asked to deliver
            a default one for the scheme */
@@ -1592,7 +1596,7 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
   if(ptr) {
     size_t partlen = strlen(ptr);
     size_t i = 0;
-    *part = Curl_strndup(ptr, partlen);
+    *part = Curl_memdup(ptr, partlen + 1);
     if(!*part)
       return CURLUE_OUT_OF_MEMORY;
     if(plusdecode) {
@@ -1739,8 +1743,9 @@ CURLUcode curl_url_set(CURLU *u, CURLUPart what,
     if((plen > MAX_SCHEME_LEN) || (plen < 1))
       /* too long or too short */
       return CURLUE_BAD_SCHEME;
-   /* verify that it is a fine scheme */
-    if(!(flags & CURLU_NON_SUPPORT_SCHEME) && !Curl_get_scheme_handler(part))
+    if(!(flags & CURLU_NON_SUPPORT_SCHEME) &&
+       /* verify that it is a fine scheme */
+       !Curl_builtin_scheme(part, CURL_ZERO_TERMINATED))
       return CURLUE_UNSUPPORTED_SCHEME;
     storep = &u->scheme;
     urlencode = FALSE; /* never */
@@ -1900,7 +1905,7 @@ CURLUcode curl_url_set(CURLU *u, CURLUPart what,
     }
     newp = Curl_dyn_ptr(&enc);
 
-    if(appendquery && newp) {
+    if(appendquery) {
       /* Append the 'newp' string onto the old query. Add a '&' separator if
          none is present at the end of the existing query already */
 
@@ -1929,8 +1934,8 @@ nomem:
       }
     }
 
-    else if(what == CURLUPART_HOST) {
-      size_t n = Curl_dyn_len(&enc);
+    if(what == CURLUPART_HOST) {
+      size_t n = strlen(newp);
       if(!n && (flags & CURLU_NO_AUTHORITY)) {
         /* Skip hostname check, it's allowed to be empty. */
       }

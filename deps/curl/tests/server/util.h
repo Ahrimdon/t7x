@@ -41,7 +41,7 @@ extern const char *serverlogfile;
 
 extern const char *cmdfile;
 
-#ifdef _WIN32
+#ifdef WIN32
 #include <process.h>
 #include <fcntl.h>
 
@@ -54,10 +54,10 @@ void win32_perror(const char *msg);
 void win32_init(void);
 void win32_cleanup(void);
 const char *sstrerror(int err);
-#else   /* _WIN32 */
+#else   /* WIN32 */
 
 #define sstrerror(e) strerror(e)
-#endif  /* _WIN32 */
+#endif  /* WIN32 */
 
 /* fopens the test case file */
 FILE *test2fopen(long testno, const char *logdir);
@@ -68,6 +68,7 @@ int write_pidfile(const char *filename);
 int write_portfile(const char *filename, int port);
 void set_advisor_read_lock(const char *filename);
 void clear_advisor_read_lock(const char *filename);
+int strncasecompare(const char *first, const char *second, size_t max);
 
 /* global variable which if set indicates that the program should finish */
 extern volatile int got_exit_signal;
@@ -75,7 +76,7 @@ extern volatile int got_exit_signal;
 /* global variable which if set indicates the first signal handled */
 extern volatile int exit_signal;
 
-#ifdef _WIN32
+#ifdef WIN32
 /* global event which if set indicates that the program should finish */
 extern HANDLE exit_event;
 #endif

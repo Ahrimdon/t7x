@@ -47,7 +47,7 @@ void tool_go_sleep(long ms)
 {
 #if defined(MSDOS)
   delay(ms);
-#elif defined(_WIN32)
+#elif defined(WIN32)
   Sleep(ms);
 #elif defined(HAVE_POLL_FINE)
   (void)poll((void *)0, 0, (int)ms);

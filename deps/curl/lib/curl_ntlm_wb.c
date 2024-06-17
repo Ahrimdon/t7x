@@ -68,9 +68,7 @@
 
 /* Portable 'sclose_nolog' used only in child process instead of 'sclose'
    to avoid fooling the socket leak detector */
-#ifdef HAVE_PIPE
-#  define sclose_nolog(x)  close((x))
-#elif defined(HAVE_CLOSESOCKET)
+#if defined(HAVE_CLOSESOCKET)
 #  define sclose_nolog(x)  closesocket((x))
 #elif defined(HAVE_CLOSESOCKET_CAMEL)
 #  define sclose_nolog(x)  CloseSocket((x))
@@ -191,7 +189,7 @@ static CURLcode ntlm_wb_init(struct Curl_easy *data, struct ntlmdata *ntlm,
     goto done;
   }
 
-  if(wakeup_create(sockfds)) {
+  if(Curl_socketpair(AF_UNIX, SOCK_STREAM, 0, sockfds)) {
     failf(data, "Could not open socket pair. errno %d: %s",
           errno, Curl_strerror(errno, buffer, sizeof(buffer)));
     goto done;
@@ -199,8 +197,8 @@ static CURLcode ntlm_wb_init(struct Curl_easy *data, struct ntlmdata *ntlm,
 
   child_pid = fork();
   if(child_pid == -1) {
-    wakeup_close(sockfds[0]);
-    wakeup_close(sockfds[1]);
+    sclose(sockfds[0]);
+    sclose(sockfds[1]);
     failf(data, "Could not fork. errno %d: %s",
           errno, Curl_strerror(errno, buffer, sizeof(buffer)));
     goto done;
@@ -270,7 +268,7 @@ static CURLcode ntlm_wb_response(struct Curl_easy *data, struct ntlmdata *ntlm,
   Curl_dyn_init(&b, MAX_NTLM_WB_RESPONSE);
 
   while(len_in > 0) {
-    ssize_t written = wakeup_write(ntlm->ntlm_auth_hlpr_socket, input, len_in);
+    ssize_t written = swrite(ntlm->ntlm_auth_hlpr_socket, input, len_in);
     if(written == -1) {
       /* Interrupted by a signal, retry it */
       if(errno == EINTR)
@@ -284,7 +282,7 @@ static CURLcode ntlm_wb_response(struct Curl_easy *data, struct ntlmdata *ntlm,
   /* Read one line */
   while(1) {
     ssize_t size =
-      wakeup_read(ntlm->ntlm_auth_hlpr_socket, buf, data->set.buffer_size);
+      sread(ntlm->ntlm_auth_hlpr_socket, buf, data->set.buffer_size);
     if(size == -1) {
       if(errno == EINTR)
         continue;

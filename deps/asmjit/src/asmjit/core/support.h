@@ -230,7 +230,7 @@ static ASMJIT_INLINE_NODEBUG constexpr T lsbMask(const CountT& n) noexcept {
     : n ? T(shr(allOnes<T>(), bitSizeOf<T>() - size_t(n))) : T(0);
 }
 
-//! Generats a leading bit-mask that has `n` most significant (leading) bits set.
+//! Generates a leading bit-mask that has `n` most significant (leading) bits set.
 template<typename T, typename CountT>
 static ASMJIT_INLINE_NODEBUG constexpr T msbMask(const CountT& n) noexcept {
   typedef typename std::make_unsigned<T>::type U;
@@ -321,12 +321,12 @@ struct BitScanCalc<T, 0> {
 };
 
 template<typename T>
-constexpr ASMJIT_INLINE_NODEBUG uint32_t clzFallback(const T& x) noexcept {
+ASMJIT_INLINE_NODEBUG constexpr uint32_t clzFallback(const T& x) noexcept {
   return BitScanCalc<T, bitSizeOf<T>() / 2u>::clz(BitScanData<T>{x, 1}).n;
 }
 
 template<typename T>
-constexpr ASMJIT_INLINE_NODEBUG uint32_t ctzFallback(const T& x) noexcept {
+ASMJIT_INLINE_NODEBUG constexpr uint32_t ctzFallback(const T& x) noexcept {
   return BitScanCalc<T, bitSizeOf<T>() / 2u>::ctz(BitScanData<T>{x, 1}).n;
 }
 
@@ -457,31 +457,30 @@ namespace Internal {
   }
 
   static ASMJIT_INLINE_NODEBUG uint32_t constPopcntImpl(uint64_t x) noexcept {
-    if (ASMJIT_ARCH_BITS >= 64) {
-      x = x - ((x >> 1) & 0x5555555555555555u);
-      x = (x & 0x3333333333333333u) + ((x >> 2) & 0x3333333333333333u);
-      return uint32_t((((x + (x >> 4)) & 0x0F0F0F0F0F0F0F0Fu) * 0x0101010101010101u) >> 56);
-    }
-    else {
-      return constPopcntImpl(uint32_t(x >> 32)) +
-             constPopcntImpl(uint32_t(x & 0xFFFFFFFFu));
-    }
+#if ASMJIT_ARCH_BITS >= 64
+    x = x - ((x >> 1) & 0x5555555555555555u);
+    x = (x & 0x3333333333333333u) + ((x >> 2) & 0x3333333333333333u);
+    return uint32_t((((x + (x >> 4)) & 0x0F0F0F0F0F0F0F0Fu) * 0x0101010101010101u) >> 56);
+#else
+    return constPopcntImpl(uint32_t(x >> 32)) +
+           constPopcntImpl(uint32_t(x & 0xFFFFFFFFu));
+#endif
   }
 
   static ASMJIT_INLINE_NODEBUG uint32_t popcntImpl(uint32_t x) noexcept {
-  #if defined(__GNUC__)
+#if defined(__GNUC__)
     return uint32_t(__builtin_popcount(x));
-  #else
+#else
     return constPopcntImpl(asUInt(x));
-  #endif
+#endif
   }
 
   static ASMJIT_INLINE_NODEBUG uint32_t popcntImpl(uint64_t x) noexcept {
-  #if defined(__GNUC__)
+#if defined(__GNUC__)
     return uint32_t(__builtin_popcountll(x));
-  #else
+#else
     return constPopcntImpl(asUInt(x));
-  #endif
+#endif
   }
 }
 //! \endcond
@@ -596,9 +595,9 @@ namespace Internal {
   template<typename T> inline T subOverflowImpl(const T& x, const T& y, FastUInt8* of) noexcept { return subOverflowFallback(x, y, of); }
   template<typename T> inline T mulOverflowImpl(const T& x, const T& y, FastUInt8* of) noexcept { return mulOverflowFallback(x, y, of); }
 
-  #if defined(__GNUC__) && !defined(ASMJIT_NO_INTRINSICS)
-  #if defined(__clang__) || __GNUC__ >= 5
-  #define ASMJIT_ARITH_OVERFLOW_SPECIALIZE(FUNC, T, RESULT_T, BUILTIN)     \
+#if defined(__GNUC__) && !defined(ASMJIT_NO_INTRINSICS)
+#if defined(__clang__) || __GNUC__ >= 5
+#define ASMJIT_ARITH_OVERFLOW_SPECIALIZE(FUNC, T, RESULT_T, BUILTIN)     \
     template<>                                                             \
     inline T FUNC(const T& x, const T& y, FastUInt8* of) noexcept {        \
       RESULT_T result;                                                     \
@@ -617,13 +616,13 @@ namespace Internal {
   ASMJIT_ARITH_OVERFLOW_SPECIALIZE(mulOverflowImpl, uint32_t, unsigned int      , __builtin_umul_overflow  )
   ASMJIT_ARITH_OVERFLOW_SPECIALIZE(mulOverflowImpl, int64_t , long long         , __builtin_smulll_overflow)
   ASMJIT_ARITH_OVERFLOW_SPECIALIZE(mulOverflowImpl, uint64_t, unsigned long long, __builtin_umulll_overflow)
-  #undef ASMJIT_ARITH_OVERFLOW_SPECIALIZE
-  #endif
-  #endif
+#undef ASMJIT_ARITH_OVERFLOW_SPECIALIZE
+#endif
+#endif
 
   // There is a bug in MSVC that makes these specializations unusable, maybe in the future...
-  #if defined(_MSC_VER) && 0
-  #define ASMJIT_ARITH_OVERFLOW_SPECIALIZE(FUNC, T, ALT_T, BUILTIN)        \
+#if defined(_MSC_VER) && 0
+#define ASMJIT_ARITH_OVERFLOW_SPECIALIZE(FUNC, T, ALT_T, BUILTIN)        \
     template<>                                                             \
     inline T FUNC(T x, T y, FastUInt8* of) noexcept {                      \
       ALT_T result;                                                        \
@@ -632,12 +631,12 @@ namespace Internal {
     }
   ASMJIT_ARITH_OVERFLOW_SPECIALIZE(addOverflowImpl, uint32_t, unsigned int      , _addcarry_u32 )
   ASMJIT_ARITH_OVERFLOW_SPECIALIZE(subOverflowImpl, uint32_t, unsigned int      , _subborrow_u32)
-  #if ARCH_BITS >= 64
+#if ARCH_BITS >= 64
   ASMJIT_ARITH_OVERFLOW_SPECIALIZE(addOverflowImpl, uint64_t, unsigned __int64  , _addcarry_u64 )
   ASMJIT_ARITH_OVERFLOW_SPECIALIZE(subOverflowImpl, uint64_t, unsigned __int64  , _subborrow_u64)
-  #endif
-  #undef ASMJIT_ARITH_OVERFLOW_SPECIALIZE
-  #endif
+#endif
+#undef ASMJIT_ARITH_OVERFLOW_SPECIALIZE
+#endif
 } // {Internal}
 //! \endcond
 
@@ -926,19 +925,6 @@ static ASMJIT_INLINE_NODEBUG const char* findPackedString(const char* p, uint32_
   return p;
 }
 
-//! Compares two instruction names.
-//!
-//! `a` is a null terminated instruction name from arch-specific `nameData[]`
-//! table. `b` is a possibly non-null terminated instruction name passed to
-//! `InstAPI::stringToInstId()`.
-static ASMJIT_FORCE_INLINE int cmpInstName(const char* a, const char* b, size_t size) noexcept {
-  for (size_t i = 0; i < size; i++) {
-    int c = int(uint8_t(a[i])) - int(uint8_t(b[i]));
-    if (c != 0) return c;
-  }
-  return int(uint8_t(a[size]));
-}
-
 //! Compares two string views.
 static ASMJIT_FORCE_INLINE int compareStringViews(const char* aData, size_t aSize, const char* bData, size_t bSize) noexcept {
   size_t size = Support::min(aSize, bSize);
@@ -951,6 +937,7 @@ static ASMJIT_FORCE_INLINE int compareStringViews(const char* aData, size_t aSiz
 
   return int(aSize) - int(bSize);
 }
+
 // Support - Memory Read Access - 8 Bits
 // =====================================
 
@@ -997,9 +984,9 @@ static ASMJIT_INLINE_NODEBUG int16_t readI16aBE(const void* p) noexcept { return
 
 template<ByteOrder BO = ByteOrder::kNative>
 static inline uint32_t readU24u(const void* p) noexcept {
-  uint32_t b0 = readU8(static_cast<const uint8_t*>(p) + (BO == ByteOrder::kLE ? 2 : 0));
-  uint32_t b1 = readU8(static_cast<const uint8_t*>(p) + (BO == ByteOrder::kLE ? 1 : 1));
-  uint32_t b2 = readU8(static_cast<const uint8_t*>(p) + (BO == ByteOrder::kLE ? 0 : 2));
+  uint32_t b0 = readU8(static_cast<const uint8_t*>(p) + (BO == ByteOrder::kLE ? 2u : 0u));
+  uint32_t b1 = readU8(static_cast<const uint8_t*>(p) + 1u);
+  uint32_t b2 = readU8(static_cast<const uint8_t*>(p) + (BO == ByteOrder::kLE ? 0u : 2u));
   return (b0 << 16) | (b1 << 8) | b2;
 }
 
@@ -1119,7 +1106,7 @@ static ASMJIT_INLINE_NODEBUG void writeI16aBE(void* p, int16_t x) noexcept { wri
 template<ByteOrder BO = ByteOrder::kNative>
 static inline void writeU24u(void* p, uint32_t v) noexcept {
   static_cast<uint8_t*>(p)[0] = uint8_t((v >> (BO == ByteOrder::kLE ?  0 : 16)) & 0xFFu);
-  static_cast<uint8_t*>(p)[1] = uint8_t((v >> (BO == ByteOrder::kLE ?  8 :  8)) & 0xFFu);
+  static_cast<uint8_t*>(p)[1] = uint8_t((v >> 8) & 0xFFu);
   static_cast<uint8_t*>(p)[2] = uint8_t((v >> (BO == ByteOrder::kLE ? 16 :  0)) & 0xFFu);
 }
 
@@ -1579,6 +1566,75 @@ template<typename T, class CompareT = Compare<SortOrder::kAscending>>
 static ASMJIT_INLINE_NODEBUG void qSort(T* base, size_t size, const CompareT& cmp = CompareT()) noexcept {
   Internal::QSortImpl<T, CompareT>::sort(base, size, cmp);
 }
+
+// Support - ReverseIterator
+// =========================
+
+//! Reverse iterator to avoid including `<iterator>` header for iteration over arrays, specialized for
+//! AsmJit use (noexcept by design).
+template<typename T>
+class ArrayReverseIterator {
+public:
+  //! \name Members
+  //! \{
+
+  T* _ptr {};
+
+  //! \}
+
+  //! \name Construction & Destruction
+  //! \{
+
+  ASMJIT_INLINE_NODEBUG constexpr ArrayReverseIterator() noexcept = default;
+  ASMJIT_INLINE_NODEBUG constexpr ArrayReverseIterator(const ArrayReverseIterator& other) noexcept = default;
+  ASMJIT_INLINE_NODEBUG constexpr ArrayReverseIterator(T* ptr) noexcept : _ptr(ptr) {}
+
+  //! \}
+
+  //! \name Overloaded Operators
+  //! \{
+
+  ASMJIT_INLINE_NODEBUG ArrayReverseIterator& operator=(const ArrayReverseIterator& other) noexcept = default;
+
+  ASMJIT_INLINE_NODEBUG bool operator==(const T* other) const noexcept { return _ptr == other; }
+  ASMJIT_INLINE_NODEBUG bool operator==(const ArrayReverseIterator& other) const noexcept { return _ptr == other._ptr; }
+
+  ASMJIT_INLINE_NODEBUG bool operator!=(const T* other) const noexcept { return _ptr != other; }
+  ASMJIT_INLINE_NODEBUG bool operator!=(const ArrayReverseIterator& other) const noexcept { return _ptr != other._ptr; }
+
+  ASMJIT_INLINE_NODEBUG bool operator<(const T* other) const noexcept { return _ptr < other; }
+  ASMJIT_INLINE_NODEBUG bool operator<(const ArrayReverseIterator& other) const noexcept { return _ptr < other._ptr; }
+
+  ASMJIT_INLINE_NODEBUG bool operator<=(const T* other) const noexcept { return _ptr <= other; }
+  ASMJIT_INLINE_NODEBUG bool operator<=(const ArrayReverseIterator& other) const noexcept { return _ptr <= other._ptr; }
+
+  ASMJIT_INLINE_NODEBUG bool operator>(const T* other) const noexcept { return _ptr > other; }
+  ASMJIT_INLINE_NODEBUG bool operator>(const ArrayReverseIterator& other) const noexcept { return _ptr > other._ptr; }
+
+  ASMJIT_INLINE_NODEBUG bool operator>=(const T* other) const noexcept { return _ptr >= other; }
+  ASMJIT_INLINE_NODEBUG bool operator>=(const ArrayReverseIterator& other) const noexcept { return _ptr >= other._ptr; }
+
+  ASMJIT_INLINE_NODEBUG ArrayReverseIterator& operator++() noexcept { _ptr--; return *this; }
+  ASMJIT_INLINE_NODEBUG ArrayReverseIterator& operator--() noexcept { _ptr++; return *this; }
+
+  ASMJIT_INLINE_NODEBUG ArrayReverseIterator operator++(int) noexcept { ArrayReverseIterator prev(*this); _ptr--; return prev; }
+  ASMJIT_INLINE_NODEBUG ArrayReverseIterator operator--(int) noexcept { ArrayReverseIterator prev(*this); _ptr++; return prev; }
+
+  template<typename Diff> ASMJIT_INLINE_NODEBUG ArrayReverseIterator operator+(const Diff& n) noexcept { return ArrayReverseIterator(_ptr -= n); }
+  template<typename Diff> ASMJIT_INLINE_NODEBUG ArrayReverseIterator operator-(const Diff& n) noexcept { return ArrayReverseIterator(_ptr += n); }
+
+  template<typename Diff> ASMJIT_INLINE_NODEBUG ArrayReverseIterator& operator+=(const Diff& n) noexcept { _ptr -= n; return *this; }
+  template<typename Diff> ASMJIT_INLINE_NODEBUG ArrayReverseIterator& operator-=(const Diff& n) noexcept { _ptr += n; return *this; }
+
+  ASMJIT_INLINE_NODEBUG constexpr T& operator*() const noexcept { return _ptr[-1]; }
+  ASMJIT_INLINE_NODEBUG constexpr T* operator->() const noexcept { return &_ptr[-1]; }
+
+  template<typename Diff> ASMJIT_INLINE_NODEBUG T& operator[](const Diff& n) noexcept { return *(_ptr - n - 1); }
+
+  ASMJIT_INLINE_NODEBUG operator T*() const noexcept { return _ptr; }
+
+  //! \}
+};
 
 // Support - Array
 // ===============

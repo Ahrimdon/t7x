@@ -108,17 +108,16 @@ class TestDownload:
 
     # download 500 files sequential
     @pytest.mark.parametrize("proto", ['http/1.1', 'h2', 'h3'])
-    def test_02_05_download_many_sequential(self, env: Env,
-                                            httpd, nghttpx, repeat, proto):
+    def test_02_05_download_500_sequential(self, env: Env,
+                                           httpd, nghttpx, repeat, proto):
         if proto == 'h3' and not env.have_h3():
             pytest.skip("h3 not supported")
         if proto == 'h3' and env.curl_uses_lib('msh3'):
             pytest.skip("msh3 shaky here")
-        count = 200
         curl = CurlClient(env=env)
-        urln = f'https://{env.authority_for(env.domain1, proto)}/data.json?[0-{count-1}]'
+        urln = f'https://{env.authority_for(env.domain1, proto)}/data.json?[0-499]'
         r = curl.http_download(urls=[urln], alpn_proto=proto)
-        r.check_response(http_status=200, count=count)
+        r.check_response(http_status=200, count=500)
         if proto == 'http/1.1':
             # http/1.1 parallel transfers will open multiple connections
             assert r.total_connects > 1, r.dump_logs()
@@ -128,11 +127,11 @@ class TestDownload:
 
     # download 500 files parallel
     @pytest.mark.parametrize("proto", ['h2', 'h3'])
-    def test_02_06_download_many_parallel(self, env: Env,
-                                          httpd, nghttpx, repeat, proto):
+    def test_02_06_download_500_parallel(self, env: Env,
+                                         httpd, nghttpx, repeat, proto):
         if proto == 'h3' and not env.have_h3():
             pytest.skip("h3 not supported")
-        count = 200
+        count = 500
         max_parallel = 50
         curl = CurlClient(env=env)
         urln = f'https://{env.authority_for(env.domain1, proto)}/data.json?[000-{count-1}]'
@@ -208,7 +207,7 @@ class TestDownload:
                               httpd, nghttpx, repeat, proto):
         if proto == 'h3' and not env.have_h3():
             pytest.skip("h3 not supported")
-        count = 10
+        count = 20
         urln = f'https://{env.authority_for(env.domain1, proto)}/data-10m?[0-{count-1}]'
         curl = CurlClient(env=env)
         r = curl.http_download(urls=[urln], alpn_proto=proto)
@@ -223,7 +222,7 @@ class TestDownload:
             pytest.skip("h3 not supported")
         if proto == 'h3' and env.curl_uses_lib('msh3'):
             pytest.skip("msh3 stalls here")
-        count = 10
+        count = 20
         urln = f'https://{env.authority_for(env.domain1, proto)}/data-10m?[0-{count-1}]'
         curl = CurlClient(env=env)
         r = curl.http_download(urls=[urln], alpn_proto=proto, extra_args=[
@@ -236,7 +235,7 @@ class TestDownload:
                                      httpd, nghttpx, repeat, proto):
         if proto == 'h3' and not env.have_h3():
             pytest.skip("h3 not supported")
-        count = 50
+        count = 100
         urln = f'https://{env.authority_for(env.domain1, proto)}/data-10m?[0-{count-1}]'
         curl = CurlClient(env=env)
         r = curl.http_download(urls=[urln], alpn_proto=proto, extra_args=[
@@ -249,7 +248,7 @@ class TestDownload:
                                     httpd, nghttpx, repeat, proto):
         if proto == 'h3' and not env.have_h3():
             pytest.skip("h3 not supported")
-        count = 50
+        count = 100
         urln = f'http://{env.domain1}:{env.http_port}/data-10m?[0-{count-1}]'
         curl = CurlClient(env=env)
         r = curl.http_download(urls=[urln], alpn_proto=proto, extra_args=[

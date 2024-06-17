@@ -91,7 +91,7 @@ main(void)
 
     printf("-----------------------------------------------\n"
            "Setting a cookie \"PREF\" via cookie interface:\n");
-#ifdef _WIN32
+#ifdef WIN32
 #define snprintf _snprintf
 #endif
     /* Netscape format cookie */

@@ -42,7 +42,7 @@ static void unit_stop(void)
 
 }
 
-#if defined(_WIN32) || defined(MSDOS)
+#if defined(MSDOS) || defined(WIN32)
 
 static char *getflagstr(int flags)
 {
@@ -353,6 +353,6 @@ UNITTEST_START
 {
   fprintf(stderr, "Skipped test not for this platform\n");
 }
-#endif /* _WIN32 || MSDOS */
+#endif /* MSDOS || WIN32 */
 
 UNITTEST_STOP

@@ -23,10 +23,10 @@ HOME=%PWD/%LOGDIR
 IPFS with malformed gateway URL from gateway file
 </name>
 <command>
-ipfs://bafybeidecnvkrygux6uoukouzps5ofkeevoqland7kopseiod6pzqvjg7u
+ipfs://QmV5JejrpgUxnkZeFZYMxVCqAbKy3KdPXWXyuEDiMNZwUx
 </command>
 <file name="%LOGDIR/.ipfs/gateway" >
-http://nonexisting,local:8080
+http://nonexisting,local:8080/%TESTNUMBER
 </file>
 </client>
 

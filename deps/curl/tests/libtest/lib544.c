@@ -63,6 +63,7 @@ int test(char *URL)
   /* Update the original data to detect non-copy. */
   strcpy(teststring, "FAIL");
 
+#ifdef LIB545
   {
     CURL *handle2;
     handle2 = curl_easy_duphandle(curl);
@@ -70,6 +71,7 @@ int test(char *URL)
 
     curl = handle2;
   }
+#endif
 
   /* Now, this is a POST request with binary 0 embedded in POST data. */
   res = curl_easy_perform(curl);

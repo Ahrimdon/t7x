@@ -15,9 +15,6 @@
 
 ASMJIT_BEGIN_SUB_NAMESPACE(a64)
 
-// a64 uses everything from arm namespace and adds into it.
-using namespace arm;
-
 //! \addtogroup asmjit_a64
 //! \{
 
@@ -293,6 +290,7 @@ struct Inst {
     kIdPacdza,                           //!< Instruction 'pacdza'.
     kIdPacdzb,                           //!< Instruction 'pacdzb'.
     kIdPacga,                            //!< Instruction 'pacga'.
+    kIdPrfm,                             //!< Instruction 'prfm'.
     kIdPssbb,                            //!< Instruction 'pssbb'.
     kIdRbit,                             //!< Instruction 'rbit'.
     kIdRet,                              //!< Instruction 'ret'.

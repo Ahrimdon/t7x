@@ -262,8 +262,6 @@ static void sasl_state(struct SASL *sasl, struct Curl_easy *data,
   sasl->state = newstate;
 }
 
-#if defined(USE_NTLM) || defined(USE_GSASL) || defined(USE_KERBEROS5) || \
-  !defined(CURL_DISABLE_DIGEST_AUTH)
 /* Get the SASL server message and convert it to binary. */
 static CURLcode get_server_message(struct SASL *sasl, struct Curl_easy *data,
                                    struct bufref *out)
@@ -286,7 +284,6 @@ static CURLcode get_server_message(struct SASL *sasl, struct Curl_easy *data,
   }
   return result;
 }
-#endif
 
 /* Encode the outgoing SASL message. */
 static CURLcode build_message(struct SASL *sasl, struct bufref *msg)

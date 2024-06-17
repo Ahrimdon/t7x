@@ -56,7 +56,7 @@
 #include <sys/time.h>
 #endif
 
-#ifdef _WIN32
+#ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
 #endif
@@ -70,7 +70,11 @@
 #endif
 
 #ifdef USE_WOLFSSL
-#include <stdint.h>
+#  if defined(HAVE_STDINT_H)
+#    include <stdint.h>
+#  elif defined(HAVE_INTTYPES_H)
+#    include <inttypes.h>
+#  endif
 #endif
 
 #ifdef USE_SCHANNEL

@@ -24,10 +24,11 @@
 
 #include "timeval.h"
 
-#if defined(_WIN32)
+#if defined(WIN32) && !defined(MSDOS)
 
-#include <curl/curl.h>
-#include "system_win32.h"
+/* set in win32_init() */
+extern LARGE_INTEGER Curl_freq;
+extern bool Curl_isVistaOrGreater;
 
 /* In case of bug fix this function has a counterpart in tool_util.c */
 struct curltime Curl_now(void)

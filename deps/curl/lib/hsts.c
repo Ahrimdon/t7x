@@ -40,7 +40,6 @@
 #include "fopen.h"
 #include "rename.h"
 #include "share.h"
-#include "strdup.h"
 
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
@@ -77,7 +76,7 @@ static time_t hsts_debugtime(void *unused)
 
 struct hsts *Curl_hsts_init(void)
 {
-  struct hsts *h = calloc(1, sizeof(struct hsts));
+  struct hsts *h = calloc(sizeof(struct hsts), 1);
   if(h) {
     Curl_llist_init(&h->list, NULL);
   }
@@ -109,7 +108,7 @@ void Curl_hsts_cleanup(struct hsts **hp)
 
 static struct stsentry *hsts_entry(void)
 {
-  return calloc(1, sizeof(struct stsentry));
+  return calloc(sizeof(struct stsentry), 1);
 }
 
 static CURLcode hsts_create(struct hsts *h,
@@ -117,29 +116,22 @@ static CURLcode hsts_create(struct hsts *h,
                             bool subdomains,
                             curl_off_t expires)
 {
-  struct stsentry *sts;
+  struct stsentry *sts = hsts_entry();
   char *duphost;
   size_t hlen;
-  DEBUGASSERT(h);
-  DEBUGASSERT(hostname);
-
-  hlen = strlen(hostname);
-  if(hlen && (hostname[hlen - 1] == '.'))
-    /* strip off any trailing dot */
-    --hlen;
-  if(!hlen)
-    /* no host name left */
-    return CURLE_BAD_FUNCTION_ARGUMENT;
-
-  sts = hsts_entry();
   if(!sts)
     return CURLE_OUT_OF_MEMORY;
 
-  duphost = Curl_strndup(hostname, hlen);
+  duphost = strdup(hostname);
   if(!duphost) {
     free(sts);
     return CURLE_OUT_OF_MEMORY;
   }
+
+  hlen = strlen(duphost);
+  if(duphost[hlen - 1] == '.')
+    /* strip off trailing any dot */
+    duphost[--hlen] = 0;
 
   sts->host = duphost;
   sts->expires = expires;
@@ -572,7 +564,7 @@ CURLcode Curl_hsts_loadcb(struct Curl_easy *data, struct hsts *h)
 
 void Curl_hsts_loadfiles(struct Curl_easy *data)
 {
-  struct curl_slist *l = data->state.hstslist;
+  struct curl_slist *l = data->set.hstslist;
   if(l) {
     Curl_share_lock(data, CURL_LOCK_DATA_HSTS, CURL_LOCK_ACCESS_SINGLE);
 

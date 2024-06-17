@@ -95,6 +95,24 @@ struct RegFormatInfo_T {
                     X == uint32_t(RegType::kX86_Gpd  ) ? 8   :
                     X == uint32_t(RegType::kX86_Gpq  ) ? 8   :
                     X == uint32_t(RegType::kX86_SReg ) ? 7   :
+                    X == uint32_t(RegType::kX86_Rip  ) ? 1   : 0,
+
+    kRegCount =     X == uint32_t(RegType::kX86_GpbLo) ? 32  :
+                    X == uint32_t(RegType::kX86_GpbHi) ? 4   :
+                    X == uint32_t(RegType::kX86_Gpw  ) ? 32  :
+                    X == uint32_t(RegType::kX86_Gpd  ) ? 32  :
+                    X == uint32_t(RegType::kX86_Gpq  ) ? 32  :
+                    X == uint32_t(RegType::kX86_Xmm  ) ? 32  :
+                    X == uint32_t(RegType::kX86_Ymm  ) ? 32  :
+                    X == uint32_t(RegType::kX86_Zmm  ) ? 32  :
+                    X == uint32_t(RegType::kX86_Mm   ) ? 8   :
+                    X == uint32_t(RegType::kX86_KReg ) ? 8   :
+                    X == uint32_t(RegType::kX86_SReg ) ? 7   :
+                    X == uint32_t(RegType::kX86_CReg ) ? 16  :
+                    X == uint32_t(RegType::kX86_DReg ) ? 16  :
+                    X == uint32_t(RegType::kX86_St   ) ? 8   :
+                    X == uint32_t(RegType::kX86_Bnd  ) ? 4   :
+                    X == uint32_t(RegType::kX86_Tmm  ) ? 8   :
                     X == uint32_t(RegType::kX86_Rip  ) ? 1   : 0
   };
 };
@@ -104,7 +122,7 @@ struct RegFormatInfo_T {
 }
 
 #define ASMJIT_REG_NAME_ENTRY(TYPE) {   \
-  RegTraits<RegType(TYPE)>::kCount,     \
+  RegFormatInfo_T<TYPE>::kRegCount,     \
   RegFormatInfo_T<TYPE>::kFormatIndex,  \
   RegFormatInfo_T<TYPE>::kSpecialIndex, \
   RegFormatInfo_T<TYPE>::kSpecialCount  \
@@ -514,8 +532,8 @@ ASMJIT_FAVOR_SIZE Error FormatterInternal::formatOperand(
 // =====================================================
 
 static constexpr char kImmCharStart = '{';
-static constexpr char kImmCharEnd   = '}';
-static constexpr char kImmCharOr    = '|';
+static constexpr char kImmCharEnd = '}';
+static constexpr char kImmCharOr = '|';
 
 struct ImmBits {
   enum Mode : uint32_t {
@@ -539,8 +557,7 @@ ASMJIT_FAVOR_SIZE static Error FormatterInternal_formatImmShuf(String& sb, uint3
     ASMJIT_PROPAGATE(sb.appendUInt(index));
   }
 
-  if (kImmCharEnd)
-    ASMJIT_PROPAGATE(sb.append(kImmCharEnd));
+  ASMJIT_PROPAGATE(sb.append(kImmCharEnd));
 
   return kErrorOk;
 }
@@ -576,7 +593,7 @@ ASMJIT_FAVOR_SIZE static Error FormatterInternal_formatImmBits(String& sb, uint3
     ASMJIT_PROPAGATE(sb.append(str));
   }
 
-  if (n && kImmCharEnd)
+  if (n)
     ASMJIT_PROPAGATE(sb.append(kImmCharEnd));
 
   return kErrorOk;
@@ -592,10 +609,7 @@ ASMJIT_FAVOR_SIZE static Error FormatterInternal_formatImmText(String& sb, uint3
     ASMJIT_PROPAGATE(sb.append(Support::findPackedString(text, value)));
   }
 
-  if (kImmCharEnd)
-    ASMJIT_PROPAGATE(sb.append(kImmCharEnd));
-
-  return kErrorOk;
+  return sb.append(kImmCharEnd);
 }
 
 ASMJIT_FAVOR_SIZE static Error FormatterInternal_explainConst(
@@ -617,8 +631,8 @@ ASMJIT_FAVOR_SIZE static Error FormatterInternal_explainConst(
   static const char vpcmpx[] = "EQ\0" "LT\0" "LE\0" "FALSE\0" "NEQ\0" "GE\0"  "GT\0"    "TRUE\0";
   static const char vpcomx[] = "LT\0" "LE\0" "GT\0" "GE\0"    "EQ\0"  "NEQ\0" "FALSE\0" "TRUE\0";
 
-  static const char vshufpd[] = "A0\0A1\0B0\0B1\0A2\0A3\0B2\0B3\0A4\0A5\0B4\0B5\0A6\0A7\0B6\0B7\0";
-  static const char vshufps[] = "A0\0A1\0A2\0A3\0A0\0A1\0A2\0A3\0B0\0B1\0B2\0B3\0B0\0B1\0B2\0B3\0";
+  static const char vshufpd[] = "A0\0" "A1\0" "B0\0" "B1\0" "A2\0" "A3\0" "B2\0" "B3\0" "A4\0" "A5\0" "B4\0" "B5\0" "A6\0" "A7\0" "B6\0" "B7\0";
+  static const char vshufps[] = "A0\0" "A1\0" "A2\0" "A3\0" "A0\0" "A1\0" "A2\0" "A3\0" "B0\0" "B1\0" "B2\0" "B3\0" "B0\0" "B1\0" "B2\0" "B3\0";
 
   static const ImmBits vfpclassxx[] = {
     { 0x07u, 0, ImmBits::kModeLookup, "QNAN\0" "+0\0" "-0\0" "+INF\0" "-INF\0" "DENORMAL\0" "-FINITE\0" "SNAN\0" }
@@ -915,7 +929,7 @@ ASMJIT_FAVOR_SIZE Error FormatterInternal::formatInstruction(
       }
     }
 
-    ASMJIT_PROPAGATE(InstInternal::instIdToString(arch, instId, sb));
+    ASMJIT_PROPAGATE(InstInternal::instIdToString(instId, sb));
   }
   else {
     ASMJIT_PROPAGATE(sb.appendFormat("[InstId=#%u]", unsigned(instId)));

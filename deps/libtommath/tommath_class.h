@@ -131,6 +131,7 @@
 #   define MP_TO_UBIN_C
 #   define MP_UBIN_SIZE_C
 #   define MP_UNPACK_C
+#   define MP_WARRAY_FREE_C
 #   define MP_XOR_C
 #   define MP_ZERO_C
 #   define S_MP_ADD_C
@@ -165,6 +166,9 @@
 #   define S_MP_SQR_KARATSUBA_C
 #   define S_MP_SQR_TOOM_C
 #   define S_MP_SUB_C
+#   define S_MP_WARRAY_C
+#   define S_MP_WARRAY_GET_C
+#   define S_MP_WARRAY_PUT_C
 #   define S_MP_ZERO_BUF_C
 #   define S_MP_ZERO_DIGS_C
 #endif
@@ -957,6 +961,10 @@
 #   define MP_ZERO_C
 #endif
 
+#if defined(MP_WARRAY_FREE_C)
+#   define S_MP_ZERO_BUF_C
+#endif
+
 #if defined(MP_XOR_C)
 #   define MP_CLAMP_C
 #   define MP_GROW_C
@@ -1137,6 +1145,8 @@
 #   define MP_CMP_MAG_C
 #   define MP_GROW_C
 #   define S_MP_SUB_C
+#   define S_MP_WARRAY_GET_C
+#   define S_MP_WARRAY_PUT_C
 #   define S_MP_ZERO_BUF_C
 #   define S_MP_ZERO_DIGS_C
 #endif
@@ -1165,6 +1175,8 @@
 #if defined(S_MP_MUL_COMBA_C)
 #   define MP_CLAMP_C
 #   define MP_GROW_C
+#   define S_MP_WARRAY_GET_C
+#   define S_MP_WARRAY_PUT_C
 #   define S_MP_ZERO_DIGS_C
 #endif
 
@@ -1179,6 +1191,8 @@
 #if defined(S_MP_MUL_HIGH_COMBA_C)
 #   define MP_CLAMP_C
 #   define MP_GROW_C
+#   define S_MP_WARRAY_GET_C
+#   define S_MP_WARRAY_PUT_C
 #   define S_MP_ZERO_DIGS_C
 #endif
 
@@ -1244,6 +1258,8 @@
 #if defined(S_MP_SQR_COMBA_C)
 #   define MP_CLAMP_C
 #   define MP_GROW_C
+#   define S_MP_WARRAY_GET_C
+#   define S_MP_WARRAY_PUT_C
 #   define S_MP_ZERO_DIGS_C
 #endif
 
@@ -1277,6 +1293,15 @@
 #   define MP_CLAMP_C
 #   define MP_GROW_C
 #   define S_MP_ZERO_DIGS_C
+#endif
+
+#if defined(S_MP_WARRAY_C)
+#endif
+
+#if defined(S_MP_WARRAY_GET_C)
+#endif
+
+#if defined(S_MP_WARRAY_PUT_C)
 #endif
 
 #if defined(S_MP_ZERO_BUF_C)

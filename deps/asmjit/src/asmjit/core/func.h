@@ -28,9 +28,6 @@ ASMJIT_BEGIN_NAMESPACE
 //!   - Target specific - calling conventions that are used by a particular architecture and ABI. For example
 //!     Windows 64-bit calling convention and AMD64 SystemV calling convention.
 enum class CallConvId : uint8_t {
-  //! None or invalid (can't be used).
-  kNone = 0,
-
   // Universal Calling Conventions
   // -----------------------------
 
@@ -38,48 +35,38 @@ enum class CallConvId : uint8_t {
   //!
   //! This is a universal calling convention, which is used to initialize specific calling conventions based on
   //! architecture, platform, and its ABI.
-  kCDecl = 1,
+  kCDecl = 0,
 
   //! `__stdcall` on targets that support this calling convention (X86).
   //!
   //! \note This calling convention is only supported on 32-bit X86. If used on environment that doesn't support
   //! this calling convention it will be replaced by \ref CallConvId::kCDecl.
-  kStdCall = 2,
+  kStdCall = 1,
 
   //! `__fastcall` on targets that support this calling convention (X86).
   //!
   //! \note This calling convention is only supported on 32-bit X86. If used on environment that doesn't support
   //! this calling convention it will be replaced by \ref CallConvId::kCDecl.
-  kFastCall = 3,
+  kFastCall = 2,
 
   //! `__vectorcall` on targets that support this calling convention (X86/X64).
   //!
   //! \note This calling convention is only supported on 32-bit and 64-bit X86 architecture on Windows platform.
   //! If used on environment that doesn't support this calling it will be replaced by \ref CallConvId::kCDecl.
-  kVectorCall = 4,
+  kVectorCall = 3,
 
   //! `__thiscall` on targets that support this calling convention (X86).
   //!
   //! \note This calling convention is only supported on 32-bit X86 Windows platform. If used on environment that
   //! doesn't support this calling convention it will be replaced by \ref CallConvId::kCDecl.
-  kThisCall = 5,
+  kThisCall = 4,
 
   //! `__attribute__((regparm(1)))` convention (GCC and Clang).
-  kRegParm1 = 6,
+  kRegParm1 = 5,
   //! `__attribute__((regparm(2)))` convention (GCC and Clang).
-  kRegParm2 = 7,
+  kRegParm2 = 6,
   //! `__attribute__((regparm(3)))` convention (GCC and Clang).
-  kRegParm3 = 8,
-
-  //! Soft-float calling convention (ARM).
-  //!
-  //! Floating point arguments are passed via general purpose registers.
-  kSoftFloat = 9,
-
-  //! Hard-float calling convention (ARM).
-  //!
-  //! Floating point arguments are passed via SIMD registers.
-  kHardFloat = 10,
+  kRegParm3 = 7,
 
   //! AsmJit specific calling convention designed for calling functions inside a multimedia code that don't use many
   //! registers internally, but are long enough to be called and not inlined. These functions are usually used to
@@ -91,28 +78,32 @@ enum class CallConvId : uint8_t {
   // ABI-Specific Calling Conventions
   // --------------------------------
 
+  //! Soft-float calling convention (AArch32).
+  //!
+  //! Floating point arguments are passed via general purpose registers.
+  kSoftFloat = 30,
+
+  //! Hard-float calling convention (AArch32).
+  //!
+  //! Floating point arguments are passed via SIMD registers.
+  kHardFloat = 31,
+
   //! X64 System-V calling convention.
   kX64SystemV = 32,
   //! X64 Windows calling convention.
   kX64Windows = 33,
 
   //! Maximum value of `CallConvId`.
-  kMaxValue = kX64Windows,
+  kMaxValue = kX64Windows
 
-  // Host Calling Conventions
-  // ------------------------
+  // Deprecated Aliases
+  // ------------------
 
-  //! Host calling convention detected at compile-time.
-  kHost =
-#if defined(_DOXYGEN)
-    DETECTED_AT_COMPILE_TIME
-#elif ASMJIT_ARCH_ARM == 32 && defined(__SOFTFP__)
-    kSoftFloat
-#elif ASMJIT_ARCH_ARM == 32 && !defined(__SOFTFP__)
-    kHardFloat
-#else
-    kCDecl
-#endif
+#if !defined(ASMJIT_NO_DEPRECATED)
+  ,
+  kNone = kCDecl,
+  kHost = kCDecl
+#endif // !ASMJIT_NO_DEPRECATED
 };
 
 //! Strategy used by calling conventions to assign registers to function arguments.
@@ -128,6 +119,8 @@ enum class CallConvStrategy : uint8_t {
   kX64Windows = 1,
   //! Windows 64-bit __vectorcall register assignment strategy.
   kX64VectorCall = 2,
+  //! Apple's AArch64 calling convention (differs compared to AArch64 calling convention used by Linux).
+  kAArch64Apple = 3,
 
   //! Maximum value of `CallConvStrategy`.
   kMaxValue = kX64VectorCall
@@ -189,6 +182,11 @@ struct CallConv {
   //! Natural stack alignment as defined by OS/ABI.
   uint8_t _naturalStackAlignment;
 
+  //! \cond INTERNAL
+  //! Reserved for future use.
+  uint8_t _reserved[2];
+  //! \endcond
+
   //! Calling convention flags.
   CallConvFlags _flags;
 
@@ -229,7 +227,7 @@ struct CallConv {
   //! as it prevents from using an uninitialized data (CallConv doesn't have a constructor that would initialize it,
   //! it's just a struct).
   ASMJIT_INLINE_NODEBUG void reset() noexcept {
-    memset(this, 0, sizeof(*this));
+    *this = CallConv{};
     memset(_passedOrder.data(), 0xFF, sizeof(_passedOrder));
   }
 
@@ -362,8 +360,15 @@ struct CallConv {
 
 //! Function signature.
 //!
-//! Contains information about function return type, count of arguments and their TypeIds. Function signature is
-//! a low level structure which doesn't contain platform specific or calling convention specific information.
+//! Contains information about a function return type, count of arguments, and their TypeIds. Function signature
+//! is a low level structure which doesn't contain platform specific or calling convention specific information.
+//! It's typically used to describe function arguments in a C-API like form, which is then used to calculate a
+//! \ref FuncDetail instance, which then maps function signature into a platform and calling convention specific
+//! format.
+//!
+//! Function signature can be built either dynamically by using \ref addArg() and \ref addArgT() functionality,
+//! or dynamically by using a template-based \ref FuncSignature::build() function, which maps template types
+//! into a function signature.
 struct FuncSignature {
   //! \name Constants
   //! \{
@@ -377,33 +382,88 @@ struct FuncSignature {
   //! \{
 
   //! Calling convention id.
-  CallConvId _ccId;
+  CallConvId _ccId = CallConvId::kCDecl;
   //! Count of arguments.
-  uint8_t _argCount;
+  uint8_t _argCount = 0;
   //! Index of a first VA or `kNoVarArgs`.
-  uint8_t _vaIndex;
+  uint8_t _vaIndex = kNoVarArgs;
   //! Return value TypeId.
-  TypeId _ret;
-  //! Function arguments TypeIds.
-  const TypeId* _args;
+  TypeId _ret = TypeId::kVoid;
+  //! Reserved for future use.
+  uint8_t _reserved[4] {};
+  //! Function argument TypeIds.
+  TypeId _args[Globals::kMaxFuncArgs] {};
+
+  //! \}
+
+  //! \name Construction & Destruction
+  //! \{
+
+  //! Default constructed function signature, initialized to \ref CallConvId::kCDecl, having no return value and no arguments.
+  ASMJIT_FORCE_INLINE constexpr FuncSignature() = default;
+
+  //! Copy constructor, which is initialized to the same function signature as `other`.
+  ASMJIT_FORCE_INLINE constexpr FuncSignature(const FuncSignature& other) = default;
+
+  //! Initializes the function signature with calling convention id `ccId` and variable argument's index `vaIndex`.
+  ASMJIT_FORCE_INLINE constexpr FuncSignature(CallConvId ccId, uint32_t vaIndex = kNoVarArgs) noexcept
+    : _ccId(ccId),
+      _vaIndex(uint8_t(vaIndex)) {}
+
+  //! Initializes the function signature with calling convention id `ccId`, `vaIndex`, return value, and function arguments.
+  template<typename... Args>
+  ASMJIT_FORCE_INLINE constexpr FuncSignature(CallConvId ccId, uint32_t vaIndex, TypeId ret, Args&&...args) noexcept
+    : _ccId(ccId),
+      _argCount(uint8_t(sizeof...(args))),
+      _vaIndex(uint8_t(vaIndex)),
+      _ret(ret),
+      _args{std::forward<Args>(args)...} {}
+
+  //! Builds a function signature based on `RetValueAndArgs`. The first template argument is a function return type,
+  //! and function arguments follow.
+  //!
+  //! \note This function returns a new function signature, which can be passed to functions where it's required. It's
+  //! a convenience function that allows to build function signature statically based on types known at compile time,
+  //! which is common in JIT code generation.
+  template<typename... RetValueAndArgs>
+  static ASMJIT_INLINE_NODEBUG constexpr FuncSignature build(CallConvId ccId = CallConvId::kCDecl, uint32_t vaIndex = kNoVarArgs) noexcept {
+    return FuncSignature(ccId, vaIndex, (TypeId(TypeUtils::TypeIdOfT<RetValueAndArgs>::kTypeId))... );
+  }
+
+  //! \}
+
+  //! \name Overloaded Operators
+  //! \{
+
+  //! Copy assignment - function signature can be copied by value.
+  ASMJIT_FORCE_INLINE FuncSignature& operator=(const FuncSignature& other) noexcept = default;
+
+  //! Compares this function signature with `other` for equality..
+  ASMJIT_FORCE_INLINE bool operator==(const FuncSignature& other) const noexcept { return equals(other); }
+  //! Compares this function signature with `other` for inequality..
+  ASMJIT_FORCE_INLINE bool operator!=(const FuncSignature& other) const noexcept { return !equals(other); }
 
   //! \}
 
   //! \name Initialization & Reset
   //! \{
 
-  //! Initializes the function signature.
-  inline void init(CallConvId ccId, uint32_t vaIndex, TypeId ret, const TypeId* args, uint32_t argCount) noexcept {
-    ASMJIT_ASSERT(argCount <= 0xFF);
-
-    _ccId = ccId;
-    _argCount = uint8_t(argCount);
-    _vaIndex = uint8_t(vaIndex);
-    _ret = ret;
-    _args = args;
-  }
-
+  //! Resets this function signature to a default constructed state.
   ASMJIT_INLINE_NODEBUG void reset() noexcept { *this = FuncSignature{}; }
+
+  //! \}
+
+  //! \name Equality & Comparison
+  //! \{
+
+  //! Compares this function signature with `other` for equality..
+  ASMJIT_INLINE_NODEBUG bool equals(const FuncSignature& other) const noexcept {
+    return _ccId == other._ccId &&
+           _argCount == other._argCount &&
+           _vaIndex == other._vaIndex &&
+           _ret == other._ret &&
+           memcmp(_args, other._args, sizeof(_args)) == 0;
+  }
 
   //! \}
 
@@ -415,6 +475,55 @@ struct FuncSignature {
   //! Sets the calling convention to `ccId`;
   ASMJIT_INLINE_NODEBUG void setCallConvId(CallConvId ccId) noexcept { _ccId = ccId; }
 
+  //! Tests whether the function signature has a return value.
+  ASMJIT_INLINE_NODEBUG bool hasRet() const noexcept { return _ret != TypeId::kVoid; }
+  //! Returns the type of the return value.
+  ASMJIT_INLINE_NODEBUG TypeId ret() const noexcept { return _ret; }
+  //! Sets the return type to `retType`.
+  ASMJIT_INLINE_NODEBUG void setRet(TypeId retType) noexcept { _ret = retType; }
+  //! Sets the return type based on `T`.
+  template<typename T>
+  ASMJIT_INLINE_NODEBUG void setRetT() noexcept { setRet(TypeId(TypeUtils::TypeIdOfT<T>::kTypeId)); }
+
+
+  //! Returns the array of function arguments' types.
+  ASMJIT_INLINE_NODEBUG const TypeId* args() const noexcept { return _args; }
+  //! Returns the number of function arguments.
+  ASMJIT_INLINE_NODEBUG uint32_t argCount() const noexcept { return _argCount; }
+
+  //! Returns the type of the argument at index `i`.
+  inline TypeId arg(uint32_t i) const noexcept {
+    ASMJIT_ASSERT(i < _argCount);
+    return _args[i];
+  }
+
+  //! Sets the argument at index `index` to `argType`.
+  inline void setArg(uint32_t index, TypeId argType) noexcept {
+    ASMJIT_ASSERT(index < _argCount);
+    _args[index] = argType;
+  }
+  //! Sets the argument at index `i` to the type based on `T`.
+  template<typename T>
+  inline void setArgT(uint32_t index) noexcept { setArg(index, TypeId(TypeUtils::TypeIdOfT<T>::kTypeId)); }
+
+  //! Tests whether an argument can be added to the signature, use before calling \ref addArg() and \ref addArgT().
+  //!
+  //! \note If you know that you are not adding more arguments than \ref Globals::kMaxFuncArgs then it's not necessary
+  //! to use this function. However, if you are adding arguments based on user input, for example, then either check
+  //! the number of arguments before using function signature or use \ref canAddArg() before actually adding them to
+  //! the function signature.
+  inline bool canAddArg() const noexcept { return _argCount < Globals::kMaxFuncArgs; }
+
+  //! Appends an argument of `type` to the function prototype.
+  inline void addArg(TypeId type) noexcept {
+    ASMJIT_ASSERT(_argCount < Globals::kMaxFuncArgs);
+    _args[_argCount++] = type;
+  }
+
+  //! Appends an argument of type based on `T` to the function prototype.
+  template<typename T>
+  inline void addArgT() noexcept { addArg(TypeId(TypeUtils::TypeIdOfT<T>::kTypeId)); }
+
   //! Tests whether the function has variable number of arguments (...).
   ASMJIT_INLINE_NODEBUG bool hasVarArgs() const noexcept { return _vaIndex != kNoVarArgs; }
   //! Returns the variable arguments (...) index, `kNoVarArgs` if none.
@@ -424,76 +533,21 @@ struct FuncSignature {
   //! Resets the variable arguments index (making it a non-va function).
   ASMJIT_INLINE_NODEBUG void resetVaIndex() noexcept { _vaIndex = kNoVarArgs; }
 
-  //! Returns the number of function arguments.
-  ASMJIT_INLINE_NODEBUG uint32_t argCount() const noexcept { return _argCount; }
-
-  ASMJIT_INLINE_NODEBUG bool hasRet() const noexcept { return _ret != TypeId::kVoid; }
-  //! Returns the return value type.
-  ASMJIT_INLINE_NODEBUG TypeId ret() const noexcept { return _ret; }
-
-  //! Returns the type of the argument at index `i`.
-  inline TypeId arg(uint32_t i) const noexcept {
-    ASMJIT_ASSERT(i < _argCount);
-    return _args[i];
-  }
-  //! Returns the array of function arguments' types.
-  ASMJIT_INLINE_NODEBUG const TypeId* args() const noexcept { return _args; }
-
   //! \}
 };
 
-template<typename... RET_ARGS>
+#if !defined(ASMJIT_NO_DEPRECATED)
+template<typename... RetValueAndArgs>
 class FuncSignatureT : public FuncSignature {
 public:
-  ASMJIT_INLINE_NODEBUG FuncSignatureT(CallConvId ccId = CallConvId::kHost, uint32_t vaIndex = kNoVarArgs) noexcept {
-    static constexpr TypeId ret_args[] = { (TypeId(TypeUtils::TypeIdOfT<RET_ARGS>::kTypeId))... };
-    init(ccId, vaIndex, ret_args[0], ret_args + 1, uint32_t(ASMJIT_ARRAY_SIZE(ret_args) - 1));
-  }
+  ASMJIT_DEPRECATED("Use FuncSignature::build<RetValueAndArgs>() instead")
+  ASMJIT_INLINE_NODEBUG constexpr FuncSignatureT(CallConvId ccId = CallConvId::kCDecl, uint32_t vaIndex = kNoVarArgs) noexcept
+    : FuncSignature(ccId, vaIndex, (TypeId(TypeUtils::TypeIdOfT<RetValueAndArgs>::kTypeId))... ) {}
 };
 
-//! Function signature builder.
-class FuncSignatureBuilder : public FuncSignature {
-public:
-  TypeId _builderArgList[Globals::kMaxFuncArgs];
-
-  //! \name Initialization & Reset
-  //! \{
-
-  ASMJIT_INLINE_NODEBUG FuncSignatureBuilder(CallConvId ccId = CallConvId::kHost, uint32_t vaIndex = kNoVarArgs) noexcept {
-    init(ccId, vaIndex, TypeId::kVoid, _builderArgList, 0);
-  }
-
-  //! \}
-
-  //! \name Accessors
-  //! \{
-
-  //! Sets the return type to `retType`.
-  ASMJIT_INLINE_NODEBUG void setRet(TypeId retType) noexcept { _ret = retType; }
-  //! Sets the return type based on `T`.
-  template<typename T>
-  ASMJIT_INLINE_NODEBUG void setRetT() noexcept { setRet(TypeId(TypeUtils::TypeIdOfT<T>::kTypeId)); }
-
-  //! Sets the argument at index `index` to `argType`.
-  inline void setArg(uint32_t index, TypeId argType) noexcept {
-    ASMJIT_ASSERT(index < _argCount);
-    _builderArgList[index] = argType;
-  }
-  //! Sets the argument at index `i` to the type based on `T`.
-  template<typename T>
-  inline void setArgT(uint32_t index) noexcept { setArg(index, TypeId(TypeUtils::TypeIdOfT<T>::kTypeId)); }
-
-  //! Appends an argument of `type` to the function prototype.
-  inline void addArg(TypeId type) noexcept {
-    ASMJIT_ASSERT(_argCount < Globals::kMaxFuncArgs);
-    _builderArgList[_argCount++] = type;
-  }
-  //! Appends an argument of type based on `T` to the function prototype.
-  template<typename T>
-  inline void addArgT() noexcept { addArg(TypeId(TypeUtils::TypeIdOfT<T>::kTypeId)); }
-
-  //! \}
-};
+ASMJIT_DEPRECATED("Use FuncSignature instead of FuncSignatureBuilder")
+typedef FuncSignature FuncSignatureBuilder;
+#endif // !ASMJIT_NO_DEPRECATED
 
 //! Argument or return value (or its part) as defined by `FuncSignature`, but with register or stack address
 //! (and other metadata) assigned.
@@ -536,15 +590,17 @@ struct FuncValue {
   //!
   //! \{
 
-  //! Initializes the `typeId` of this `FuncValue`.
+  //! Initializes this `FuncValue` only to the `typeId` provided - the rest of the values will be cleared.
   ASMJIT_INLINE_NODEBUG void initTypeId(TypeId typeId) noexcept {
     _data = uint32_t(typeId) << kTypeIdShift;
   }
 
+  //! Initializes this `FuncValue` to a register of `regType`, `regId`, and assigns its `typeId` and `flags`.
   ASMJIT_INLINE_NODEBUG void initReg(RegType regType, uint32_t regId, TypeId typeId, uint32_t flags = 0) noexcept {
     _data = (uint32_t(regType) << kRegTypeShift) | (regId << kRegIdShift) | (uint32_t(typeId) << kTypeIdShift) | kFlagIsReg | flags;
   }
 
+  //! Initializes this `FuncValue` to a stack at the given `offset` and assigns its `typeId`.
   ASMJIT_INLINE_NODEBUG void initStack(int32_t offset, TypeId typeId) noexcept {
     _data = (uint32_t(offset) << kStackOffsetShift) | (uint32_t(typeId) << kTypeIdShift) | kFlagIsStack;
   }
@@ -561,11 +617,13 @@ struct FuncValue {
   //!
   //! \{
 
+  //! Assigns a register of `regType` and `regId`.
   inline void assignRegData(RegType regType, uint32_t regId) noexcept {
     ASMJIT_ASSERT((_data & (kRegTypeMask | kRegIdMask)) == 0);
     _data |= (uint32_t(regType) << kRegTypeShift) | (regId << kRegIdShift) | kFlagIsReg;
   }
 
+  //! Assigns a stack location at `offset`.
   inline void assignStackOffset(int32_t offset) noexcept {
     ASMJIT_ASSERT((_data & kStackOffsetMask) == 0);
     _data |= (uint32_t(offset) << kStackOffsetShift) | kFlagIsStack;
@@ -579,7 +637,9 @@ struct FuncValue {
   //! Returns true if the value is initialized (explicit bool cast).
   ASMJIT_INLINE_NODEBUG explicit operator bool() const noexcept { return _data != 0; }
 
+  //! \cond INTERNAL
   ASMJIT_INLINE_NODEBUG void _replaceValue(uint32_t mask, uint32_t value) noexcept { _data = (_data & ~mask) | value; }
+  //! \endcond
 
   //! Tests whether the `FuncValue` has a flag `flag` set.
   ASMJIT_INLINE_NODEBUG bool hasFlag(uint32_t flag) const noexcept { return Support::test(_data, flag); }
@@ -661,40 +721,52 @@ public:
     return n;
   }
 
+  //! Returns values in this value in the pack.
+  //!
+  //! \note The returned array has exactly \ref Globals::kMaxValuePack elements.
   ASMJIT_INLINE_NODEBUG FuncValue* values() noexcept { return _values; }
+  //! \overload
   ASMJIT_INLINE_NODEBUG const FuncValue* values() const noexcept { return _values; }
 
+  //! Resets a value at the given `index` in the pack, which makes it unassigned.
   inline void resetValue(size_t index) noexcept {
     ASMJIT_ASSERT(index < Globals::kMaxValuePack);
     _values[index].reset();
   }
 
+  //! Tests whether the value at the given `index` in the pack is assigned.
   inline bool hasValue(size_t index) noexcept {
     ASMJIT_ASSERT(index < Globals::kMaxValuePack);
     return _values[index].isInitialized();
   }
 
+  //! Assigns a register at the given `index` to `reg` and an optional `typeId`.
   inline void assignReg(size_t index, const BaseReg& reg, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(index < Globals::kMaxValuePack);
     ASMJIT_ASSERT(reg.isPhysReg());
     _values[index].initReg(reg.type(), reg.id(), typeId);
   }
 
+  //! Assigns a register at the given `index` to `regType`, `regId`, and an optional `typeId`.
   inline void assignReg(size_t index, RegType regType, uint32_t regId, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(index < Globals::kMaxValuePack);
     _values[index].initReg(regType, regId, typeId);
   }
 
+  //! Assigns a stack location at the given `index` to `offset` and an optional `typeId`.
   inline void assignStack(size_t index, int32_t offset, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(index < Globals::kMaxValuePack);
     _values[index].initStack(offset, typeId);
   }
 
+  //! Accesses the value in the pack at the given `index`.
+  //!
+  //! \note The maximum index value is `Globals::kMaxValuePack - 1`.
   inline FuncValue& operator[](size_t index) {
     ASMJIT_ASSERT(index < Globals::kMaxValuePack);
     return _values[index];
   }
-
+  //! \overload
   inline const FuncValue& operator[](size_t index) const {
     ASMJIT_ASSERT(index < Globals::kMaxValuePack);
     return _values[index];
@@ -717,6 +789,11 @@ enum class FuncAttributes : uint32_t {
   kHasFuncCalls = 0x00000020u,
   //! Function has aligned save/restore of vector registers.
   kAlignedVecSR = 0x00000040u,
+  //! Function must begin with an instruction that marks a start of a branch or function.
+  //!
+  //!   * `ENDBR32/ENDBR64` instruction is inserted at the beginning of the function (X86, X86_64).
+  //!   * `BTI` instruction is inserted at the beginning of the function (AArch64)
+  kIndirectBranchProtection = 0x00000080u,
   //! FuncFrame is finalized and can be used by prolog/epilog inserter (PEI).
   kIsFinalized = 0x00000800u,
 
@@ -753,10 +830,8 @@ public:
   //! \name Constants
   //! \{
 
-  enum : uint8_t {
-    //! Doesn't have variable number of arguments (`...`).
-    kNoVarArgs = 0xFFu
-  };
+  //! Function doesn't have a variable number of arguments (`...`).
+  static constexpr uint8_t kNoVarArgs = 0xFFu;
 
   //! \}
 
@@ -785,19 +860,32 @@ public:
   //! \name Construction & Destruction
   //! \{
 
+  //! Creates a default constructed \ref FuncDetail.
   ASMJIT_INLINE_NODEBUG FuncDetail() noexcept {}
+
+  //! Copy constructor.
+  //!
+  //! Function details are copyable.
   ASMJIT_INLINE_NODEBUG FuncDetail(const FuncDetail& other) noexcept = default;
 
   //! Initializes this `FuncDetail` to the given signature.
   ASMJIT_API Error init(const FuncSignature& signature, const Environment& environment) noexcept;
-  ASMJIT_INLINE_NODEBUG void reset() noexcept { *this = FuncDetail{}; }
 
   //! \}
 
   //! \name Overloaded Operators
   //! \{
 
+  //! Assignment operator, copies `other` to this \ref FuncDetail.
   ASMJIT_INLINE_NODEBUG FuncDetail& operator=(const FuncDetail& other) noexcept = default;
+
+  //! \}
+
+  //! \name Reset
+  //! \{
+
+  //! Resets the function detail to its default constructed state.
+  ASMJIT_INLINE_NODEBUG void reset() noexcept { *this = FuncDetail{}; }
 
   //! \}
 
@@ -957,87 +1045,98 @@ public:
   //! \{
 
   //! Function attributes.
-  FuncAttributes _attributes;
+  FuncAttributes _attributes {};
 
   //! Target architecture.
-  Arch _arch;
+  Arch _arch {};
   //! SP register ID (to access call stack and local stack).
-  uint8_t _spRegId;
+  uint8_t _spRegId = uint8_t(BaseReg::kIdBad);
   //! SA register ID (to access stack arguments).
-  uint8_t _saRegId;
+  uint8_t _saRegId = uint8_t(BaseReg::kIdBad);
 
   //! Red zone size (copied from CallConv).
-  uint8_t _redZoneSize;
+  uint8_t _redZoneSize = 0;
   //! Spill zone size (copied from CallConv).
-  uint8_t _spillZoneSize;
+  uint8_t _spillZoneSize = 0;
   //! Natural stack alignment (copied from CallConv).
-  uint8_t _naturalStackAlignment;
+  uint8_t _naturalStackAlignment = 0;
   //! Minimum stack alignment to turn on dynamic alignment.
-  uint8_t _minDynamicAlignment;
+  uint8_t _minDynamicAlignment = 0;
 
   //! Call stack alignment.
-  uint8_t _callStackAlignment;
+  uint8_t _callStackAlignment = 0;
   //! Local stack alignment.
-  uint8_t _localStackAlignment;
+  uint8_t _localStackAlignment = 0;
   //! Final stack alignment.
-  uint8_t _finalStackAlignment;
+  uint8_t _finalStackAlignment = 0;
 
   //! Adjustment of the stack before returning (X86-STDCALL).
-  uint16_t _calleeStackCleanup;
+  uint16_t _calleeStackCleanup = 0;
 
   //! Call stack size.
-  uint32_t _callStackSize;
+  uint32_t _callStackSize = 0;
   //! Local stack size.
-  uint32_t _localStackSize;
+  uint32_t _localStackSize = 0;
   //! Final stack size (sum of call stack and local stack).
-  uint32_t _finalStackSize;
+  uint32_t _finalStackSize = 0;
 
   //! Local stack offset (non-zero only if call stack is used).
-  uint32_t _localStackOffset;
+  uint32_t _localStackOffset = 0;
   //! Offset relative to SP that contains previous SP (before alignment).
-  uint32_t _daOffset;
+  uint32_t _daOffset = 0;
   //! Offset of the first stack argument relative to SP.
-  uint32_t _saOffsetFromSP;
+  uint32_t _saOffsetFromSP = 0;
   //! Offset of the first stack argument relative to SA (_saRegId or FP).
-  uint32_t _saOffsetFromSA;
+  uint32_t _saOffsetFromSA = 0;
 
   //! Local stack adjustment in prolog/epilog.
-  uint32_t _stackAdjustment;
+  uint32_t _stackAdjustment = 0;
 
   //! Registers that are dirty.
-  Support::Array<RegMask, Globals::kNumVirtGroups> _dirtyRegs;
+  Support::Array<RegMask, Globals::kNumVirtGroups> _dirtyRegs {};
   //! Registers that must be preserved (copied from CallConv).
-  Support::Array<RegMask, Globals::kNumVirtGroups> _preservedRegs;
+  Support::Array<RegMask, Globals::kNumVirtGroups> _preservedRegs {};
   //! Size to save/restore per register group.
-  Support::Array<uint8_t, Globals::kNumVirtGroups> _saveRestoreRegSize;
+  Support::Array<uint8_t, Globals::kNumVirtGroups> _saveRestoreRegSize {};
   //! Alignment of save/restore area per register group.
-  Support::Array<uint8_t, Globals::kNumVirtGroups> _saveRestoreAlignment;
+  Support::Array<uint8_t, Globals::kNumVirtGroups> _saveRestoreAlignment {};
 
   //! Stack size required to save registers with push/pop.
-  uint16_t _pushPopSaveSize;
+  uint16_t _pushPopSaveSize = 0;
   //! Stack size required to save extra registers that cannot use push/pop.
-  uint16_t _extraRegSaveSize;
+  uint16_t _extraRegSaveSize = 0;
   //! Offset where registers saved/restored via push/pop are stored
-  uint32_t _pushPopSaveOffset;
+  uint32_t _pushPopSaveOffset = 0;
   //! Offset where extra registers that cannot use push/pop are stored.
-  uint32_t _extraRegSaveOffset;
+  uint32_t _extraRegSaveOffset = 0;
 
   //! \}
 
   //! \name Construction & Destruction
   //! \{
 
-  ASMJIT_INLINE_NODEBUG FuncFrame() noexcept { reset(); }
+  //! Creates a default constructed function frame, which has initialized all members to their default values.
+  ASMJIT_INLINE_NODEBUG FuncFrame() noexcept = default;
+  //! Creates a copy of `other` function frame.
   ASMJIT_INLINE_NODEBUG FuncFrame(const FuncFrame& other) noexcept = default;
 
-  ASMJIT_API Error init(const FuncDetail& func) noexcept;
+  //! \}
 
-  ASMJIT_INLINE_NODEBUG void reset() noexcept {
-    memset(this, 0, sizeof(FuncFrame));
-    _spRegId = BaseReg::kIdBad;
-    _saRegId = BaseReg::kIdBad;
-    _daOffset = kTagInvalidOffset;
-  }
+  //! \name Initialization & Reset
+  //! \{
+
+  //! Initializes the function frame based on `func` detail.
+  ASMJIT_API Error init(const FuncDetail& func) noexcept;
+  //! Resets the function frame into its default constructed state.
+  ASMJIT_INLINE_NODEBUG void reset() noexcept { *this = FuncFrame{}; }
+
+  //! \}
+
+  //! \name Overloaded Operators
+  //! \{
+
+  //! Copy assignment - function frame is copy assignable.
+  ASMJIT_INLINE_NODEBUG FuncFrame& operator=(const FuncFrame& other) noexcept = default;
 
   //! \}
 
@@ -1072,10 +1171,17 @@ public:
 
   //! Tests whether the function calls other functions.
   ASMJIT_INLINE_NODEBUG bool hasFuncCalls() const noexcept { return hasAttribute(FuncAttributes::kHasFuncCalls); }
-  //! Sets `kFlagHasCalls` to true.
+  //! Sets `FuncAttributes::kHasFuncCalls` to true.
   ASMJIT_INLINE_NODEBUG void setFuncCalls() noexcept { addAttributes(FuncAttributes::kHasFuncCalls); }
-  //! Sets `kFlagHasCalls` to false.
+  //! Sets `FuncAttributes::kHasFuncCalls` to false.
   ASMJIT_INLINE_NODEBUG void resetFuncCalls() noexcept { clearAttributes(FuncAttributes::kHasFuncCalls); }
+
+  //! Tests whether the function uses indirect branch protection, see \ref FuncAttributes::kIndirectBranchProtection.
+  ASMJIT_INLINE_NODEBUG bool hasIndirectBranchProtection() const noexcept { return hasAttribute(FuncAttributes::kIndirectBranchProtection); }
+  //! Enabled indirect branch protection (sets `FuncAttributes::kIndirectBranchProtection` attribute to true).
+  ASMJIT_INLINE_NODEBUG void setIndirectBranchProtection() noexcept { addAttributes(FuncAttributes::kIndirectBranchProtection); }
+  //! Disables indirect branch protection (sets `FuncAttributes::kIndirectBranchProtection` attribute to false).
+  ASMJIT_INLINE_NODEBUG void resetIndirectBranchProtection() noexcept { clearAttributes(FuncAttributes::kIndirectBranchProtection); }
 
   //! Tests whether the function has AVX enabled.
   ASMJIT_INLINE_NODEBUG bool isAvxEnabled() const noexcept { return hasAttribute(FuncAttributes::kX86_AVXEnabled); }
@@ -1251,11 +1357,16 @@ public:
     addDirtyRegs(std::forward<Args>(args)...);
   }
 
+  //! A helper function to set all registers from all register groups dirty.
+  //!
+  //! \note This should not be used in general as it's the most pessimistic case. However, it can be used for testing
+  //! or in cases in which all registers are considered clobbered.
   ASMJIT_INLINE_NODEBUG void setAllDirty() noexcept {
     for (size_t i = 0; i < ASMJIT_ARRAY_SIZE(_dirtyRegs); i++)
       _dirtyRegs[i] = 0xFFFFFFFFu;
   }
 
+  //! A helper function to set all registers from the given register `group` dirty.
   inline void setAllDirty(RegGroup group) noexcept {
     ASMJIT_ASSERT(group <= RegGroup::kMaxVirt);
     _dirtyRegs[group] = 0xFFFFFFFFu;
@@ -1278,6 +1389,7 @@ public:
     return _preservedRegs[group];
   }
 
+  //! Returns the size of a save-restore are for the required register `group`.
   inline uint32_t saveRestoreRegSize(RegGroup group) const noexcept {
     ASMJIT_ASSERT(group <= RegGroup::kMaxVirt);
     return _saveRestoreRegSize[group];
@@ -1332,25 +1444,27 @@ public:
   //! \{
 
   //! Function detail.
-  const FuncDetail* _funcDetail;
+  const FuncDetail* _funcDetail {};
   //! Register that can be used to access arguments passed by stack.
-  uint8_t _saRegId;
+  uint8_t _saRegId = uint8_t(BaseReg::kIdBad);
   //! Reserved for future use.
-  uint8_t _reserved[3];
+  uint8_t _reserved[3] {};
   //! Mapping of each function argument.
-  FuncValuePack _argPacks[Globals::kMaxFuncArgs];
+  FuncValuePack _argPacks[Globals::kMaxFuncArgs] {};
 
   //! \}
 
   //! \name Construction & Destruction
   //! \{
 
+  //! Creates either a default initialized `FuncArgsAssignment` or to assignment that links to `fd`, if non-null.
   ASMJIT_INLINE_NODEBUG explicit FuncArgsAssignment(const FuncDetail* fd = nullptr) noexcept { reset(fd); }
 
-  ASMJIT_INLINE_NODEBUG FuncArgsAssignment(const FuncArgsAssignment& other) noexcept {
-    memcpy(this, &other, sizeof(*this));
-  }
+  //! Copy constructor.
+  ASMJIT_INLINE_NODEBUG FuncArgsAssignment(const FuncArgsAssignment& other) noexcept = default;
 
+  //! Resets this `FuncArgsAssignment` to either default constructed state or to assignment that links to `fd`,
+  //! if non-null.
   inline void reset(const FuncDetail* fd = nullptr) noexcept {
     _funcDetail = fd;
     _saRegId = uint8_t(BaseReg::kIdBad);
@@ -1360,10 +1474,20 @@ public:
 
   //! \}
 
+  //! \name Overloaded Operators
+  //! \{
+
+  //! Copy assignment.
+  ASMJIT_INLINE_NODEBUG FuncArgsAssignment& operator=(const FuncArgsAssignment& other) noexcept = default;
+
+  //! \}
+
   //! \name Accessors
   //! \{
 
+  //! Returns the associated \ref FuncDetail of this `FuncArgsAssignment`.
   ASMJIT_INLINE_NODEBUG const FuncDetail* funcDetail() const noexcept { return _funcDetail; }
+  //! Associates \ref FuncDetails with this `FuncArgsAssignment`.
   ASMJIT_INLINE_NODEBUG void setFuncDetail(const FuncDetail* fd) noexcept { _funcDetail = fd; }
 
   ASMJIT_INLINE_NODEBUG bool hasSARegId() const noexcept { return _saRegId != BaseReg::kIdBad; }
@@ -1371,47 +1495,59 @@ public:
   ASMJIT_INLINE_NODEBUG void setSARegId(uint32_t regId) { _saRegId = uint8_t(regId); }
   ASMJIT_INLINE_NODEBUG void resetSARegId() { _saRegId = uint8_t(BaseReg::kIdBad); }
 
+  //! Returns assigned argument at `argIndex` and `valueIndex`.
+  //!
+  //! \note `argIndex` refers to he function argument and `valueIndex` refers to a value pack (in case multiple
+  //! values are passed as a single argument).
   inline FuncValue& arg(size_t argIndex, size_t valueIndex) noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     return _argPacks[argIndex][valueIndex];
   }
+  //! \overload
   inline const FuncValue& arg(size_t argIndex, size_t valueIndex) const noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     return _argPacks[argIndex][valueIndex];
   }
 
+  //! Tests whether argument at `argIndex` and `valueIndex` has been assigned.
   inline bool isAssigned(size_t argIndex, size_t valueIndex) const noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     return _argPacks[argIndex][valueIndex].isAssigned();
   }
 
+  //! Assigns register at `argIndex` and value index of 0 to `reg` and an optional `typeId`.
   inline void assignReg(size_t argIndex, const BaseReg& reg, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     ASMJIT_ASSERT(reg.isPhysReg());
     _argPacks[argIndex][0].initReg(reg.type(), reg.id(), typeId);
   }
 
+  //! Assigns register at `argIndex` and value index of 0 to `regType`, `regId`, and an optional `typeId`.
   inline void assignReg(size_t argIndex, RegType regType, uint32_t regId, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     _argPacks[argIndex][0].initReg(regType, regId, typeId);
   }
 
+  //! Assigns stack at `argIndex` and value index of 0 to `offset` and an optional `typeId`.
   inline void assignStack(size_t argIndex, int32_t offset, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     _argPacks[argIndex][0].initStack(offset, typeId);
   }
 
+  //! Assigns register at `argIndex` and `valueIndex` to `reg` and an optional `typeId`.
   inline void assignRegInPack(size_t argIndex, size_t valueIndex, const BaseReg& reg, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     ASMJIT_ASSERT(reg.isPhysReg());
     _argPacks[argIndex][valueIndex].initReg(reg.type(), reg.id(), typeId);
   }
 
+  //! Assigns register at `argIndex` and `valueIndex` to `regType`, `regId`, and an optional `typeId`.
   inline void assignRegInPack(size_t argIndex, size_t valueIndex, RegType regType, uint32_t regId, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     _argPacks[argIndex][valueIndex].initReg(regType, regId, typeId);
   }
 
+  //! Assigns stack at `argIndex` and `valueIndex` to `offset` and an optional `typeId`.
   inline void assignStackInPack(size_t argIndex, size_t valueIndex, int32_t offset, TypeId typeId = TypeId::kVoid) noexcept {
     ASMJIT_ASSERT(argIndex < ASMJIT_ARRAY_SIZE(_argPacks));
     _argPacks[argIndex][valueIndex].initStack(offset, typeId);
@@ -1430,6 +1566,9 @@ public:
     _assignAllInternal(argIndex + 1, std::forward<Args>(args)...);
   }
 
+  //! Assigns all argument at once.
+  //!
+  //! \note This function can be only used if the arguments don't contain value packs (multiple values per argument).
   template<typename... Args>
   inline void assignAll(Args&&... args) noexcept {
     _assignAllInternal(0, std::forward<Args>(args)...);
@@ -1442,8 +1581,8 @@ public:
 
   //! Update `FuncFrame` based on function's arguments assignment.
   //!
-  //! \note You MUST call this in order to use `BaseEmitter::emitArgsAssignment()`, otherwise the FuncFrame would
-  //! not contain the information necessary to assign all arguments into the registers and/or stack specified.
+  //! \note This function must be called in order to use `BaseEmitter::emitArgsAssignment()`, otherwise the \ref FuncFrame
+  //! would not contain the information necessary to assign all arguments into the registers and/or stack specified.
   ASMJIT_API Error updateFuncFrame(FuncFrame& frame) const noexcept;
 
   //! \}
@@ -1454,4 +1593,3 @@ public:
 ASMJIT_END_NAMESPACE
 
 #endif // ASMJIT_CORE_FUNC_H_INCLUDED
-

@@ -1194,6 +1194,8 @@ static CURLcode imap_state_fetch_resp(struct Curl_easy *data,
       if(result)
         return result;
 
+      data->req.bytecount += chunk;
+
       infof(data, "Written %zu bytes, %" CURL_FORMAT_CURL_OFF_TU
             " bytes are left for transfer", chunk, size - chunk);
 
@@ -1428,7 +1430,7 @@ static CURLcode imap_init(struct Curl_easy *data)
   CURLcode result = CURLE_OK;
   struct IMAP *imap;
 
-  imap = data->req.p.imap = calloc(1, sizeof(struct IMAP));
+  imap = data->req.p.imap = calloc(sizeof(struct IMAP), 1);
   if(!imap)
     result = CURLE_OUT_OF_MEMORY;
 

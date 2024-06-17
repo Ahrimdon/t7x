@@ -196,6 +196,7 @@ int main(int argc, char *argv[])
     case 'h':
       usage(NULL);
       return 2;
+      break;
     case 'a':
       abort_paused = 1;
       break;

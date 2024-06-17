@@ -588,6 +588,8 @@ mp_err mp_fread(mp_int *a, int radix, FILE *stream) MP_WUR;
 mp_err mp_fwrite(const mp_int *a, int radix, FILE *stream) MP_WUR;
 #endif
 
+int mp_warray_free(void);
+
 #define mp_to_binary(M, S, N)  mp_to_radix((M), (S), (N), NULL, 2)
 #define mp_to_octal(M, S, N)   mp_to_radix((M), (S), (N), NULL, 8)
 #define mp_to_decimal(M, S, N) mp_to_radix((M), (S), (N), NULL, 10)

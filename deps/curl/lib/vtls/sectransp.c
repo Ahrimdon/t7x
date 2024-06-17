@@ -46,10 +46,8 @@
 #endif /* __clang__ */
 
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress"
 #pragma GCC diagnostic ignored "-Wundef"
-#pragma GCC diagnostic ignored "-Wunreachable-code"
 #endif
 
 #include <limits.h>
@@ -1015,7 +1013,7 @@ static CURLcode CopyCertSubject(struct Curl_easy *data,
   }
   else {
     size_t cbuf_size = ((size_t)CFStringGetLength(c) * 4) + 1;
-    cbuf = calloc(1, cbuf_size);
+    cbuf = calloc(cbuf_size, 1);
     if(cbuf) {
       if(!CFStringGetCString(c, cbuf, cbuf_size,
                              kCFStringEncodingUTF8)) {
@@ -1653,6 +1651,11 @@ static CURLcode sectransp_connect_step1(struct Curl_cfilter *cf,
   const bool verifypeer = conn_config->verifypeer;
   char * const ssl_cert = ssl_config->primary.clientcert;
   const struct curl_blob *ssl_cert_blob = ssl_config->primary.cert_blob;
+#ifdef ENABLE_IPV6
+  struct in6_addr addr;
+#else
+  struct in_addr addr;
+#endif /* ENABLE_IPV6 */
   char *ciphers;
   OSStatus err = noErr;
 #if CURL_BUILD_MAC
@@ -2000,9 +2003,13 @@ static CURLcode sectransp_connect_step1(struct Curl_cfilter *cf,
    * Both hostname check and SNI require SSLSetPeerDomainName().
    * Also: the verifyhost setting influences SNI usage */
   if(conn_config->verifyhost) {
-    char *server = connssl->peer.sni?
-                   connssl->peer.sni : connssl->peer.hostname;
-    err = SSLSetPeerDomainName(backend->ssl_ctx, server, strlen(server));
+    size_t snilen;
+    char *snihost = Curl_ssl_snihost(data, connssl->hostname, &snilen);
+    if(!snihost) {
+      failf(data, "Failed to set SNI");
+      return CURLE_SSL_CONNECT_ERROR;
+    }
+    err = SSLSetPeerDomainName(backend->ssl_ctx, snihost, snilen);
 
     if(err != noErr) {
       failf(data, "SSL: SSLSetPeerDomainName() failed: OSStatus %d",
@@ -2010,7 +2017,11 @@ static CURLcode sectransp_connect_step1(struct Curl_cfilter *cf,
       return CURLE_SSL_CONNECT_ERROR;
     }
 
-    if(connssl->peer.is_ip_address) {
+    if((Curl_inet_pton(AF_INET, connssl->hostname, &addr))
+  #ifdef ENABLE_IPV6
+    || (Curl_inet_pton(AF_INET6, connssl->hostname, &addr))
+  #endif
+       ) {
       infof(data, "WARNING: using IP address, SNI is being disabled by "
             "the OS.");
     }
@@ -2068,7 +2079,7 @@ static CURLcode sectransp_connect_step1(struct Curl_cfilter *cf,
       ssl_sessionid =
         aprintf("%s:%d:%d:%s:%d",
                 ssl_cafile ? ssl_cafile : "(blob memory)",
-                verifypeer, conn_config->verifyhost, connssl->peer.hostname,
+                verifypeer, conn_config->verifyhost, connssl->hostname,
                 connssl->port);
       ssl_sessionid_len = strlen(ssl_sessionid);
 
@@ -2654,7 +2665,7 @@ check_handshake:
          host name: */
       case errSSLHostNameMismatch:
         failf(data, "SSL certificate peer verification failed, the "
-              "certificate did not match \"%s\"\n", connssl->peer.dispname);
+              "certificate did not match \"%s\"\n", connssl->dispname);
         return CURLE_PEER_FAILED_VERIFICATION;
 
       /* Problem with SSL / TLS negotiation */
@@ -2746,7 +2757,7 @@ check_handshake:
       default:
         /* May also return codes listed in Security Framework Result Codes */
         failf(data, "Unknown SSL protocol error in connection to %s:%d",
-              connssl->peer.hostname, err);
+              connssl->hostname, err);
         break;
     }
     return CURLE_SSL_CONNECT_ERROR;
@@ -3404,6 +3415,7 @@ again:
         }
         *curlcode = CURLE_AGAIN;
         return -1L;
+        break;
 
       /* errSSLClosedGraceful - server gracefully shut down the SSL session
          errSSLClosedNoNotify - server hung up on us instead of sending a
@@ -3413,6 +3425,7 @@ again:
       case errSSLClosedNoNotify:
         *curlcode = CURLE_OK;
         return 0;
+        break;
 
         /* The below is errSSLPeerAuthCompleted; it's not defined in
            Leopard's headers */
@@ -3432,6 +3445,7 @@ again:
         failf(data, "SSLRead() return error %d", err);
         *curlcode = CURLE_RECV_ERROR;
         return -1L;
+        break;
     }
   }
   return (ssize_t)processed;
@@ -3469,7 +3483,7 @@ const struct Curl_ssl Curl_ssl_sectransp = {
   Curl_none_cert_status_request,      /* cert_status_request */
   sectransp_connect,                  /* connect */
   sectransp_connect_nonblocking,      /* connect_nonblocking */
-  Curl_ssl_adjust_pollset,            /* adjust_pollset */
+  Curl_ssl_get_select_socks,          /* getsock */
   sectransp_get_internals,            /* get_internals */
   sectransp_close,                    /* close_one */
   Curl_none_close_all,                /* close_all */
@@ -3485,10 +3499,6 @@ const struct Curl_ssl Curl_ssl_sectransp = {
   sectransp_recv,                     /* recv decrypted data */
   sectransp_send,                     /* send data to encrypt */
 };
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 #ifdef __clang__
 #pragma clang diagnostic pop

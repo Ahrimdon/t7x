@@ -52,7 +52,8 @@ Error ZoneVectorBase::_grow(ZoneAllocator* allocator, uint32_t sizeOfT, uint32_t
 
 Error ZoneVectorBase::_reserve(ZoneAllocator* allocator, uint32_t sizeOfT, uint32_t n) noexcept {
   uint32_t oldCapacity = _capacity;
-  if (oldCapacity >= n) return kErrorOk;
+  if (oldCapacity >= n)
+    return kErrorOk;
 
   uint32_t nBytes = n * sizeOfT;
   if (ASMJIT_UNLIKELY(nBytes < n))
@@ -65,11 +66,10 @@ Error ZoneVectorBase::_reserve(ZoneAllocator* allocator, uint32_t sizeOfT, uint3
     return DebugUtils::errored(kErrorOutOfMemory);
 
   void* oldData = _data;
-  if (_size)
+  if (oldData && _size) {
     memcpy(newData, oldData, size_t(_size) * sizeOfT);
-
-  if (oldData)
     allocator->release(oldData, size_t(oldCapacity) * sizeOfT);
+  }
 
   _capacity = uint32_t(allocatedBytes / sizeOfT);
   ASMJIT_ASSERT(_capacity >= n);
@@ -289,9 +289,22 @@ static void test_zone_vector(ZoneAllocator* allocator, const char* typeName) {
   }
   EXPECT_FALSE(vec.empty());
   EXPECT_EQ(vec.size(), uint32_t(kMax));
+  EXPECT_EQ(vec.indexOf(T(0)), uint32_t(0));
   EXPECT_EQ(vec.indexOf(T(kMax - 1)), uint32_t(kMax - 1));
 
+  EXPECT_EQ(vec.begin()[0], 0);
+  EXPECT_EQ(vec.end()[-1], kMax - 1);
+
   EXPECT_EQ(vec.rbegin()[0], kMax - 1);
+  EXPECT_EQ(vec.rend()[-1], 0);
+
+  int64_t fsum = 0;
+  int64_t rsum = 0;
+
+  for (const T& item : vec) { fsum += item; }
+  for (auto it = vec.rbegin(); it != vec.rend(); ++it) { rsum += *it; }
+
+  EXPECT_EQ(fsum, rsum);
 
   vec.release(allocator);
 }

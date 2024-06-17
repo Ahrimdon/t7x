@@ -160,8 +160,13 @@ MP_STATIC_ASSERT(correct_word_size, sizeof(mp_word) == (2u * sizeof(mp_digit)))
  * - Must be large enough such that the mp_set_u64 setter can
  *   store uint64_t in the mp_int without growing
  */
-#define MP_MIN_DIGIT_COUNT MP_MAX(3, (((int)MP_SIZEOF_BITS(uint64_t) + MP_DIGIT_BIT) - 1) / MP_DIGIT_BIT)
+#ifndef MP_MIN_DIGIT_COUNT
+#    define MP_MIN_DIGIT_COUNT MP_MAX(3, (((int)MP_SIZEOF_BITS(uint64_t) + MP_DIGIT_BIT) - 1) / MP_DIGIT_BIT)
+#endif
 MP_STATIC_ASSERT(prec_geq_min_prec, MP_DEFAULT_DIGIT_COUNT >= MP_MIN_DIGIT_COUNT)
+MP_STATIC_ASSERT(min_prec_geq_3, MP_MIN_DIGIT_COUNT >= 3)
+MP_STATIC_ASSERT(min_prec_geq_uint64size,
+                 MP_MIN_DIGIT_COUNT >= ((((int)MP_SIZEOF_BITS(uint64_t) + MP_DIGIT_BIT) - 1) / MP_DIGIT_BIT))
 
 /* Maximum number of digits.
  * - Must be small enough such that mp_bit_count does not overflow.
@@ -228,6 +233,47 @@ MP_PRIVATE mp_err s_mp_radix_size_overestimate(const mp_int *a, const int radix,
 #define MP_UPPER_LIMIT_FIXED_LOG ( (int) ( (sizeof(mp_word) * CHAR_BIT) - 1))
 MP_PRIVATE mp_err s_mp_fp_log(const mp_int *a, mp_int *c) MP_WUR;
 MP_PRIVATE mp_err s_mp_fp_log_d(const mp_int *a, mp_word *c) MP_WUR;
+
+#ifdef MP_SMALL_STACK_SIZE
+
+#if defined(__GNUC__)
+/* We use TLS (Thread Local Storage) to manage the instance of the WARRAY
+ * per thread.
+ * The compilers we're usually looking at are GCC, Clang and MSVC.
+ * Both GCC and Clang are straight-forward with TLS, so it's enabled there.
+ * Using MSVC the tests were OK with the static library, but failed when
+ * the library was built as a DLL. As a result we completely disable
+ * support for MSVC.
+ * If your compiler can handle TLS properly without too much hocus pocus,
+ * feel free to open a PR to add support for it.
+ */
+#define mp_thread __thread
+#else
+#error "MP_SMALL_STACK_SIZE not supported with your compiler"
+#endif
+
+#define MP_SMALL_STACK_SIZE_C
+#define MP_ALLOC_WARRAY(name) *name = s_mp_warray_get()
+#define MP_FREE_WARRAY(name) s_mp_warray_put(name)
+#define MP_CHECK_WARRAY(name) do { if ((name) == NULL) { return MP_MEM; } } while(0)
+#else
+#define MP_ALLOC_WARRAY(name) name[MP_WARRAY]
+#define MP_FREE_WARRAY(name)
+#define MP_CHECK_WARRAY(name)
+#endif
+
+#ifndef mp_thread
+#define mp_thread
+#endif
+
+typedef struct {
+   void *w_free, *w_used;
+} st_warray;
+
+extern MP_PRIVATE mp_thread st_warray s_mp_warray;
+
+MP_PRIVATE void *s_mp_warray_get(void);
+MP_PRIVATE void s_mp_warray_put(void *w);
 
 #define MP_RADIX_MAP_REVERSE_SIZE 80u
 extern MP_PRIVATE const char s_mp_radix_map[];

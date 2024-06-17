@@ -46,13 +46,13 @@ permissions: {}
 
 env:
   MAKEFLAGS: -j 3
-  quictls-version: 3.1.4+quic
+  quictls-version: 3.0.10+quic
   gnutls-version: 3.8.0
   wolfssl-version: master
-  nghttp3-version: v1.0.0
-  ngtcp2-version: v1.0.1
-  nghttp2-version: v1.58.0
-  mod_h2-version: v2.0.25
+  nghttp3-version: v0.15.0
+  ngtcp2-version: v0.19.1
+  nghttp2-version: v1.56.0
+  mod_h2-version: v2.0.21
 
 jobs:
   autotools:
@@ -66,7 +66,7 @@ jobs:
         - name: quictls
           configure: >-
             PKG_CONFIG_PATH="$HOME/nghttpx/lib/pkgconfig" LDFLAGS="-Wl,-rpath,$HOME/nghttpx/lib"
-            --with-ngtcp2=$HOME/nghttpx --enable-warnings --enable-werror --enable-debug --disable-ntlm
+            --with-ngtcp2=$HOME/nghttpx --enable-warnings --enable-werror --enable-debug
             --with-test-nghttpx="$HOME/nghttpx/bin/nghttpx"
             --with-openssl=$HOME/nghttpx
         - name: gnutls
@@ -95,19 +95,19 @@ jobs:
 
     - name: cache quictls
       uses: actions/cache@v3
-      id: cache-quictls-no-deprecated
+      id: cache-quictls
       env:
-        cache-name: cache-quictls-no-deprecated
+        cache-name: cache-quictls
       with:
         path: /home/runner/quictls
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.quictls-version }}
 
-    - if: steps.cache-quictls-no-deprecated.outputs.cache-hit != 'true'
+    - if: steps.cache-quictls.outputs.cache-hit != 'true'
       run: |
         cd $HOME
         git clone --quiet --depth=1 -b openssl-${{ env.quictls-version }} https://github.com/quictls/openssl quictls
         cd quictls
-        ./config no-deprecated --prefix=$HOME/nghttpx --libdir=$HOME/nghttpx/lib
+        ./config --prefix=$HOME/nghttpx --libdir=$HOME/nghttpx/lib
         make
       name: 'build quictls'
 

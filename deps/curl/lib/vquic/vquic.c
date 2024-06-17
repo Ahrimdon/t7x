@@ -100,7 +100,6 @@ CURLcode vquic_ctx_init(struct cf_quic_ctx *qctx)
     }
   }
 #endif
-  vquic_ctx_update_time(qctx);
 
   return CURLE_OK;
 }
@@ -108,11 +107,6 @@ CURLcode vquic_ctx_init(struct cf_quic_ctx *qctx)
 void vquic_ctx_free(struct cf_quic_ctx *qctx)
 {
   Curl_bufq_free(&qctx->sendbuf);
-}
-
-void vquic_ctx_update_time(struct cf_quic_ctx *qctx)
-{
-  qctx->last_op = Curl_now();
 }
 
 static CURLcode send_packet_no_gso(struct Curl_cfilter *cf,
@@ -248,7 +242,6 @@ static CURLcode vquic_send_packets(struct Curl_cfilter *cf,
                                    const uint8_t *pkt, size_t pktlen,
                                    size_t gsolen, size_t *psent)
 {
-  CURLcode result;
 #ifdef DEBUGBUILD
   /* simulate network blocking/partial writes */
   if(qctx->wblock_percent > 0) {
@@ -261,14 +254,10 @@ static CURLcode vquic_send_packets(struct Curl_cfilter *cf,
   }
 #endif
   if(qctx->no_gso && pktlen > gsolen) {
-    result = send_packet_no_gso(cf, data, qctx, pkt, pktlen, gsolen, psent);
+    return send_packet_no_gso(cf, data, qctx, pkt, pktlen, gsolen, psent);
   }
-  else {
-    result = do_sendmsg(cf, data, qctx, pkt, pktlen, gsolen, psent);
-  }
-  if(!result)
-    qctx->last_io = qctx->last_op;
-  return result;
+
+  return do_sendmsg(cf, data, qctx, pkt, pktlen, gsolen, psent);
 }
 
 CURLcode vquic_flush(struct Curl_cfilter *cf, struct Curl_easy *data,
@@ -535,17 +524,13 @@ CURLcode vquic_recv_packets(struct Curl_cfilter *cf,
                             size_t max_pkts,
                             vquic_recv_pkt_cb *recv_cb, void *userp)
 {
-  CURLcode result;
 #if defined(HAVE_SENDMMSG)
-  result = recvmmsg_packets(cf, data, qctx, max_pkts, recv_cb, userp);
+  return recvmmsg_packets(cf, data, qctx, max_pkts, recv_cb, userp);
 #elif defined(HAVE_SENDMSG)
-  result = recvmsg_packets(cf, data, qctx, max_pkts, recv_cb, userp);
+  return recvmsg_packets(cf, data, qctx, max_pkts, recv_cb, userp);
 #else
-  result = recvfrom_packets(cf, data, qctx, max_pkts, recv_cb, userp);
+  return recvfrom_packets(cf, data, qctx, max_pkts, recv_cb, userp);
 #endif
-  if(!result)
-    qctx->last_io = qctx->last_op;
-  return result;
 }
 
 /*

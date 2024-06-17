@@ -163,9 +163,9 @@ CURLcode Curl_fillreadbuffer(struct Curl_easy *data, size_t bytes,
 {
   size_t buffersize = bytes;
   size_t nread;
+
   curl_read_callback readfunc = NULL;
   void *extra_data = NULL;
-  int eof_index = 0;
 
 #ifndef CURL_DISABLE_HTTP
   if(data->state.trailers_state == TRAILERS_INITIALIZED) {
@@ -223,7 +223,6 @@ CURLcode Curl_fillreadbuffer(struct Curl_easy *data, size_t bytes,
        */
     readfunc = trailers_read;
     extra_data = (void *)data;
-    eof_index = 1;
   }
   else
 #endif
@@ -232,15 +231,10 @@ CURLcode Curl_fillreadbuffer(struct Curl_easy *data, size_t bytes,
     extra_data = data->state.in;
   }
 
-  if(!data->req.fread_eof[eof_index]) {
-    Curl_set_in_callback(data, true);
-    nread = readfunc(data->req.upload_fromhere, 1, buffersize, extra_data);
-    Curl_set_in_callback(data, false);
-    /* make sure the callback is not called again after EOF */
-    data->req.fread_eof[eof_index] = !nread;
-  }
-  else
-    nread = 0;
+  Curl_set_in_callback(data, true);
+  nread = readfunc(data->req.upload_fromhere, 1,
+                   buffersize, extra_data);
+  Curl_set_in_callback(data, false);
 
   if(nread == CURL_READFUNC_ABORT) {
     failf(data, "operation aborted by callback");
@@ -428,15 +422,16 @@ static CURLcode readwrite_data(struct Curl_easy *data,
                                bool *comeback)
 {
   CURLcode result = CURLE_OK;
-  char *buf;
-  size_t blen;
-  size_t consumed;
+  ssize_t nread; /* number of bytes read */
+  size_t excess = 0; /* excess bytes read */
+  bool readmore = FALSE; /* used by RTP to signal for more data */
   int maxloops = 100;
   curl_off_t max_recv = data->set.max_recv_speed?
                         data->set.max_recv_speed : CURL_OFF_T_MAX;
+  char *buf = data->state.buffer;
   bool data_eof_handled = FALSE;
+  DEBUGASSERT(buf);
 
-  DEBUGASSERT(data->state.buffer);
   *done = FALSE;
   *comeback = FALSE;
 
@@ -444,7 +439,8 @@ static CURLcode readwrite_data(struct Curl_easy *data,
      read or we get a CURLE_AGAIN */
   do {
     bool is_empty_data = FALSE;
-    size_t bytestoread = data->set.buffer_size;
+    size_t buffersize = data->set.buffer_size;
+    size_t bytestoread = buffersize;
     /* For HTTP/2 and HTTP/3, read data without caring about the content
        length. This is safe because body in HTTP/2 is always segmented
        thanks to its framing layer. Meanwhile, we have to call Curl_read
@@ -453,38 +449,31 @@ static CURLcode readwrite_data(struct Curl_easy *data,
     bool is_http3 = Curl_conn_is_http3(data, conn, FIRSTSOCKET);
     data_eof_handled = is_http3 || Curl_conn_is_http2(data, conn, FIRSTSOCKET);
 
-    /* Each loop iteration starts with a fresh buffer and handles
-     * all data read into it. */
-    buf = data->state.buffer;
-    blen = 0;
-
-    /* If we are reading BODY data and the connection does NOT handle EOF
-     * and we know the size of the BODY data, limit the read amount */
-    if(!k->header && !data_eof_handled && k->size != -1) {
+    if(!data_eof_handled && k->size != -1 && !k->header) {
+      /* make sure we don't read too much */
       curl_off_t totalleft = k->size - k->bytecount;
-      if(totalleft <= 0)
-        bytestoread = 0;
-      else if(totalleft < (curl_off_t)bytestoread)
+      if(totalleft < (curl_off_t)bytestoread)
         bytestoread = (size_t)totalleft;
     }
 
     if(bytestoread) {
       /* receive data from the network! */
-      ssize_t nread; /* number of bytes read */
       result = Curl_read(data, conn->sockfd, buf, bytestoread, &nread);
+
+      /* read would've blocked */
       if(CURLE_AGAIN == result) {
         result = CURLE_OK;
         break; /* get out of loop */
       }
-      else if(result)
+
+      if(result>0)
         goto out;
-      DEBUGASSERT(nread >= 0);
-      blen = (size_t)nread;
     }
     else {
       /* read nothing but since we wanted nothing we consider this an OK
          situation to proceed from */
       DEBUGF(infof(data, "readwrite_data: we're done"));
+      nread = 0;
     }
 
     if(!k->bytecount) {
@@ -496,17 +485,12 @@ static CURLcode readwrite_data(struct Curl_easy *data,
 
     *didwhat |= KEEP_RECV;
     /* indicates data of zero size, i.e. empty file */
-    is_empty_data = ((blen == 0) && (k->bodywrites == 0)) ? TRUE : FALSE;
+    is_empty_data = ((nread == 0) && (k->bodywrites == 0)) ? TRUE : FALSE;
 
-    if(0 < blen || is_empty_data) {
-      /* data->state.buffer is allocated 1 byte larger than
-       * data->set.buffer_size admits. *wink* */
-      /* TODO: we should really not rely on this being 0-terminated, since
-       * the actual data read might contain 0s. */
-      buf[blen] = 0;
+    if(0 < nread || is_empty_data) {
+      buf[nread] = 0;
     }
-
-    if(!blen) {
+    if(!nread) {
       /* if we receive 0 or less here, either the data transfer is done or the
          server closed the connection and we bail out from this! */
       if(data_eof_handled)
@@ -518,70 +502,48 @@ static CURLcode readwrite_data(struct Curl_easy *data,
         break;
     }
 
+    /* Default buffer to use when we write the buffer, it may be changed
+       in the flow below before the actual storing is done. */
+    k->str = buf;
+
     if(conn->handler->readwrite) {
-      bool readmore = FALSE; /* indicates data is incomplete, need more */
-      consumed = 0;
-      result = conn->handler->readwrite(data, conn, buf, blen,
-                                        &consumed, &readmore);
+      result = conn->handler->readwrite(data, conn, &nread, &readmore);
       if(result)
         goto out;
       if(readmore)
         break;
-      buf += consumed;
-      blen -= consumed;
-      if(k->download_done) {
-        /* We've stopped dealing with input, get out of the do-while loop */
-        if(blen > 0) {
-          infof(data,
-                "Excess found:"
-                " excess = %zu"
-                " url = %s (zero-length body)",
-                blen, data->state.up.path);
-        }
-
-        /* we make sure that this socket isn't read more now */
-        k->keepon &= ~KEEP_RECV;
-        break;
-      }
     }
 
 #ifndef CURL_DISABLE_HTTP
     /* Since this is a two-state thing, we check if we are parsing
        headers at the moment or not. */
     if(k->header) {
-      consumed = 0;
-      result = Curl_http_readwrite_headers(data, conn, buf, blen, &consumed);
+      /* we are in parse-the-header-mode */
+      bool stop_reading = FALSE;
+      result = Curl_http_readwrite_headers(data, conn, &nread, &stop_reading);
       if(result)
         goto out;
-      buf += consumed;
-      blen -= consumed;
 
       if(conn->handler->readwrite &&
-         (k->maxdownload <= 0 && blen > 0)) {
-        bool readmore = FALSE; /* indicates data is incomplete, need more */
-        consumed = 0;
-        result = conn->handler->readwrite(data, conn, buf, blen,
-                                           &consumed, &readmore);
+         (k->maxdownload <= 0 && nread > 0)) {
+        result = conn->handler->readwrite(data, conn, &nread, &readmore);
         if(result)
           goto out;
         if(readmore)
           break;
-        buf += consumed;
-        blen -= consumed;
       }
 
-      if(k->download_done) {
+      if(stop_reading) {
         /* We've stopped dealing with input, get out of the do-while loop */
-        if(blen > 0) {
+
+        if(nread > 0) {
           infof(data,
                 "Excess found:"
-                " excess = %zu"
+                " excess = %zd"
                 " url = %s (zero-length body)",
-                blen, data->state.up.path);
+                nread, data->state.up.path);
         }
 
-        /* we make sure that this socket isn't read more now */
-        k->keepon &= ~KEEP_RECV;
         break;
       }
     }
@@ -591,13 +553,11 @@ static CURLcode readwrite_data(struct Curl_easy *data,
     /* This is not an 'else if' since it may be a rest from the header
        parsing, where the beginning of the buffer is headers and the end
        is non-headers. */
-    if(!k->header && (blen > 0 || is_empty_data)) {
+    if(!k->header && (nread > 0 || is_empty_data)) {
 
-      if(data->req.no_body && blen > 0) {
+      if(data->req.no_body) {
         /* data arrives although we want none, bail out */
         streamclose(conn, "ignoring body");
-        DEBUGF(infof(data, "did not want a BODY, but seeing %zu bytes",
-                     blen));
         *done = TRUE;
         result = CURLE_WEIRD_SERVER_REPLY;
         goto out;
@@ -616,18 +576,34 @@ static CURLcode readwrite_data(struct Curl_easy *data,
       } /* this is the first time we write a body part */
 #endif /* CURL_DISABLE_HTTP */
 
+      k->bodywrites++;
+
+      /* pass data to the debug function before it gets "dechunked" */
+      if(data->set.verbose) {
+        if(k->badheader) {
+          Curl_debug(data, CURLINFO_DATA_IN,
+                     Curl_dyn_ptr(&data->state.headerb),
+                     Curl_dyn_len(&data->state.headerb));
+          if(k->badheader == HEADER_PARTHEADER)
+            Curl_debug(data, CURLINFO_DATA_IN,
+                       k->str, (size_t)nread);
+        }
+        else
+          Curl_debug(data, CURLINFO_DATA_IN,
+                     k->str, (size_t)nread);
+      }
+
 #ifndef CURL_DISABLE_HTTP
       if(k->chunk) {
         /*
          * Here comes a chunked transfer flying and we need to decode this
          * properly.  While the name says read, this function both reads
-         * and writes away the data.
+         * and writes away the data. The returned 'nread' holds the number
+         * of actual data it wrote to the client.
          */
         CURLcode extra;
-        CHUNKcode res;
-
-        consumed = 0;
-        res = Curl_httpchunk_read(data, buf, blen, &consumed, &extra);
+        CHUNKcode res =
+          Curl_httpchunk_read(data, k->str, nread, &nread, &extra);
 
         if(CHUNKE_OK < res) {
           if(CHUNKE_PASSTHRU_ERROR == res) {
@@ -639,14 +615,9 @@ static CURLcode readwrite_data(struct Curl_easy *data,
           result = CURLE_RECV_ERROR;
           goto out;
         }
-
-        buf += consumed;
-        blen -= consumed;
-         if(CHUNKE_STOP == res) {
+        if(CHUNKE_STOP == res) {
           /* we're done reading chunks! */
           k->keepon &= ~KEEP_RECV; /* read no more */
-          /* chunks read successfully, download is complete */
-          k->download_done = TRUE;
 
           /* N number of bytes at the end of the str buffer that weren't
              written to the client. */
@@ -660,57 +631,117 @@ static CURLcode readwrite_data(struct Curl_easy *data,
       }
 #endif   /* CURL_DISABLE_HTTP */
 
-      max_recv -= blen;
+      /* Account for body content stored in the header buffer */
+      if((k->badheader == HEADER_PARTHEADER) && !k->ignorebody) {
+        size_t headlen = Curl_dyn_len(&data->state.headerb);
+        DEBUGF(infof(data, "Increasing bytecount by %zu", headlen));
+        k->bytecount += headlen;
+      }
 
-      if(!k->chunk && (blen || k->badheader || is_empty_data)) {
+      if((-1 != k->maxdownload) &&
+         (k->bytecount + nread >= k->maxdownload)) {
+
+        excess = (size_t)(k->bytecount + nread - k->maxdownload);
+        if(excess > 0 && !k->ignorebody) {
+          infof(data,
+                "Excess found in a read:"
+                " excess = %zu"
+                ", size = %" CURL_FORMAT_CURL_OFF_T
+                ", maxdownload = %" CURL_FORMAT_CURL_OFF_T
+                ", bytecount = %" CURL_FORMAT_CURL_OFF_T,
+                excess, k->size, k->maxdownload, k->bytecount);
+          connclose(conn, "excess found in a read");
+        }
+
+        nread = (ssize_t) (k->maxdownload - k->bytecount);
+        if(nread < 0) /* this should be unusual */
+          nread = 0;
+
+        /* HTTP/3 over QUIC should keep reading until QUIC connection
+           is closed.  In contrast to HTTP/2 which can stop reading
+           from TCP connection, HTTP/3 over QUIC needs ACK from server
+           to ensure stream closure.  It should keep reading. */
+        if(!is_http3) {
+          k->keepon &= ~KEEP_RECV; /* we're done reading */
+        }
+      }
+
+      k->bytecount += nread;
+      max_recv -= nread;
+
+      result = Curl_pgrsSetDownloadCounter(data, k->bytecount);
+      if(result)
+        goto out;
+
+      if(!k->chunk && (nread || k->badheader || is_empty_data)) {
         /* If this is chunky transfer, it was already written */
 
-        if(k->badheader) {
+        if(k->badheader && !k->ignorebody) {
           /* we parsed a piece of data wrongly assuming it was a header
              and now we output it as body instead */
           size_t headlen = Curl_dyn_len(&data->state.headerb);
 
           /* Don't let excess data pollute body writes */
-          if(k->maxdownload != -1 && (curl_off_t)headlen > k->maxdownload)
-            headlen = (size_t)k->maxdownload;
+          if(k->maxdownload == -1 || (curl_off_t)headlen <= k->maxdownload)
+            result = Curl_client_write(data, CLIENTWRITE_BODY,
+                                       Curl_dyn_ptr(&data->state.headerb),
+                                       headlen);
+          else
+            result = Curl_client_write(data, CLIENTWRITE_BODY,
+                                       Curl_dyn_ptr(&data->state.headerb),
+                                       (size_t)k->maxdownload);
 
-          result = Curl_client_write(data, CLIENTWRITE_BODY,
-                                     Curl_dyn_ptr(&data->state.headerb),
-                                     headlen);
           if(result)
             goto out;
         }
-
-        if(blen) {
+        if(k->badheader < HEADER_ALLBAD) {
+          /* This switch handles various content encodings. If there's an
+             error here, be sure to check over the almost identical code
+             in http_chunks.c.
+             Make sure that ALL_CONTENT_ENCODINGS contains all the
+             encodings handled here. */
+          if(!k->ignorebody && nread) {
 #ifndef CURL_DISABLE_POP3
-          if(conn->handler->protocol & PROTO_FAMILY_POP3) {
-            result = k->ignorebody? CURLE_OK :
-                     Curl_pop3_write(data, buf, blen);
-          }
-          else
+            if(conn->handler->protocol & PROTO_FAMILY_POP3)
+              result = Curl_pop3_write(data, k->str, nread);
+            else
 #endif /* CURL_DISABLE_POP3 */
-            result = Curl_client_write(data, CLIENTWRITE_BODY, buf, blen);
+              result = Curl_client_write(data, CLIENTWRITE_BODY, k->str,
+                                         nread);
+          }
         }
-        k->badheader = FALSE; /* taken care of now */
+        k->badheader = HEADER_NORMAL; /* taken care of now */
 
         if(result)
           goto out;
       }
 
-      if(k->download_done && !is_http3) {
-        /* HTTP/3 over QUIC should keep reading until QUIC connection
-           is closed.  In contrast to HTTP/2 which can stop reading
-           from TCP connection, HTTP/3 over QUIC needs ACK from server
-           to ensure stream closure.  It should keep reading. */
-        k->keepon &= ~KEEP_RECV; /* we're done reading */
-      }
     } /* if(!header and data to read) */
+
+    if(conn->handler->readwrite && excess) {
+      /* Parse the excess data */
+      k->str += nread;
+
+      if(&k->str[excess] > &buf[data->set.buffer_size]) {
+        /* the excess amount was too excessive(!), make sure
+           it doesn't read out of buffer */
+        excess = &buf[data->set.buffer_size] - k->str;
+      }
+      nread = (ssize_t)excess;
+
+      result = conn->handler->readwrite(data, conn, &nread, &readmore);
+      if(result)
+        goto out;
+
+      if(readmore)
+        k->keepon |= KEEP_RECV; /* we're not done reading */
+      break;
+    }
 
     if(is_empty_data) {
       /* if we received nothing, the server closed the connection and we
          are done */
       k->keepon &= ~KEEP_RECV;
-      k->download_done = TRUE;
     }
 
     if((k->keepon & KEEP_RECV_PAUSE) || !(k->keepon & KEEP_RECV)) {
@@ -733,7 +764,6 @@ static CURLcode readwrite_data(struct Curl_easy *data,
        on from our side, we need to stop that immediately. */
     infof(data, "we are done reading and this is set to close, stop send");
     k->keepon &= ~KEEP_SEND; /* no writing anymore either */
-    k->keepon &= ~KEEP_SEND_PAUSE; /* no pausing anymore either */
   }
 
 out:
@@ -753,7 +783,7 @@ CURLcode Curl_done_sending(struct Curl_easy *data,
   return CURLE_OK;
 }
 
-#if defined(_WIN32) && defined(USE_WINSOCK)
+#if defined(WIN32) && defined(USE_WINSOCK)
 #ifndef SIO_IDEAL_SEND_BACKLOG_QUERY
 #define SIO_IDEAL_SEND_BACKLOG_QUERY 0x4004747B
 #endif
@@ -947,7 +977,7 @@ static CURLcode readwrite_upload(struct Curl_easy *data,
     if(result)
       return result;
 
-#if defined(_WIN32) && defined(USE_WINSOCK)
+#if defined(WIN32) && defined(USE_WINSOCK)
     {
       struct curltime n = Curl_now();
       if(Curl_timediff(n, k->last_sndbuf_update) > 1000) {
@@ -1400,7 +1430,8 @@ CURLcode Curl_pretransfer(struct Curl_easy *data)
           return CURLE_OUT_OF_MEMORY;
       }
       wc = data->wildcard;
-      if(wc->state < CURLWC_INIT) {
+      if((wc->state < CURLWC_INIT) ||
+         (wc->state >= CURLWC_CLEAN)) {
         if(wc->ftpwc)
           wc->dtor(wc->ftpwc);
         Curl_safefree(wc->pattern);
@@ -1604,7 +1635,7 @@ CURLcode Curl_follow(struct Curl_easy *data,
           return Curl_uc_to_curlcode(uc);
         }
 
-        p = Curl_get_scheme_handler(scheme);
+        p = Curl_builtin_scheme(scheme, CURL_ZERO_TERMINATED);
         if(p && (p->protocol != data->info.conn_protocol)) {
           infof(data, "Clear auth, redirects scheme from %s to %s",
                 data->info.conn_scheme, scheme);

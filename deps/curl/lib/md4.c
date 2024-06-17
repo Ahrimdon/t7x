@@ -32,8 +32,9 @@
 #include "warnless.h"
 
 #ifdef USE_OPENSSL
-#include <openssl/opensslv.h>
-#if (OPENSSL_VERSION_NUMBER >= 0x30000000L) && !defined(USE_AMISSL)
+#include <openssl/opensslconf.h>
+#if defined(OPENSSL_VERSION_MAJOR) && (OPENSSL_VERSION_MAJOR >= 3) && \
+   !defined(USE_AMISSL)
 /* OpenSSL 3.0.0 marks the MD4 functions as deprecated */
 #define OPENSSL_NO_MD4
 #endif

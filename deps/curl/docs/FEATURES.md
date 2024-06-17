@@ -12,7 +12,7 @@
 
 ## libcurl
 
- - URL RFC 3986 syntax
+ - full URL syntax with no length limit
  - custom maximum download time
  - custom least download speed acceptable
  - custom output result after completion

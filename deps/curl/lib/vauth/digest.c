@@ -125,6 +125,7 @@ bool Curl_auth_digest_get_pair(const char *str, char *value, char *content,
         }
         else
           return FALSE;
+        break;
       }
     }
 

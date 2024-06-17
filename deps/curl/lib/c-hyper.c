@@ -22,10 +22,6 @@
  *
  ***************************************************************************/
 
-/* Curl's integration with Hyper. This replaces certain functions in http.c,
- * based on configuration #defines. This implementation supports HTTP/1.1 but
- * not HTTP/2.
- */
 #include "curl_setup.h"
 
 #if !defined(CURL_DISABLE_HTTP) && defined(USE_HYPER)
@@ -176,15 +172,17 @@ static int hyper_each_header(void *userdata,
 
   Curl_debug(data, CURLINFO_HEADER_IN, headp, len);
 
-  writetype = CLIENTWRITE_HEADER;
-  if(data->state.hconnect)
-    writetype |= CLIENTWRITE_CONNECT;
-  if(data->req.httpcode/100 == 1)
-    writetype |= CLIENTWRITE_1XX;
-  result = Curl_client_write(data, writetype, headp, len);
-  if(result) {
-    data->state.hresult = CURLE_ABORTED_BY_CALLBACK;
-    return HYPER_ITER_BREAK;
+  if(!data->state.hconnect || !data->set.suppress_connect_headers) {
+    writetype = CLIENTWRITE_HEADER;
+    if(data->state.hconnect)
+      writetype |= CLIENTWRITE_CONNECT;
+    if(data->req.httpcode/100 == 1)
+      writetype |= CLIENTWRITE_1XX;
+    result = Curl_client_write(data, writetype, headp, len);
+    if(result) {
+      data->state.hresult = CURLE_ABORTED_BY_CALLBACK;
+      return HYPER_ITER_BREAK;
+    }
   }
 
   result = Curl_bump_headersize(data, len, FALSE);
@@ -203,7 +201,7 @@ static int hyper_body_chunk(void *userdata, const hyper_buf *chunk)
   struct SingleRequest *k = &data->req;
   CURLcode result = CURLE_OK;
 
-  if(0 == k->bodywrites) {
+  if(0 == k->bodywrites++) {
     bool done = FALSE;
 #if defined(USE_NTLM)
     struct connectdata *conn = data->conn;
@@ -243,6 +241,11 @@ static int hyper_body_chunk(void *userdata, const hyper_buf *chunk)
       return HYPER_ITER_BREAK;
     }
   }
+  if(k->ignorebody)
+    return HYPER_ITER_CONTINUE;
+  if(0 == len)
+    return HYPER_ITER_CONTINUE;
+  Curl_debug(data, CURLINFO_DATA_IN, buf, len);
   result = Curl_client_write(data, CLIENTWRITE_BODY, buf, len);
 
   if(result) {
@@ -250,6 +253,12 @@ static int hyper_body_chunk(void *userdata, const hyper_buf *chunk)
     return HYPER_ITER_BREAK;
   }
 
+  data->req.bytecount += len;
+  result = Curl_pgrsSetDownloadCounter(data, data->req.bytecount);
+  if(result) {
+    data->state.hresult = result;
+    return HYPER_ITER_BREAK;
+  }
   return HYPER_ITER_CONTINUE;
 }
 
@@ -301,14 +310,13 @@ static CURLcode status_line(struct Curl_easy *data,
   Curl_debug(data, CURLINFO_HEADER_IN, Curl_dyn_ptr(&data->state.headerb),
              len);
 
-  writetype = CLIENTWRITE_HEADER|CLIENTWRITE_STATUS;
-  if(data->state.hconnect)
-    writetype |= CLIENTWRITE_CONNECT;
-  result = Curl_client_write(data, writetype,
-                             Curl_dyn_ptr(&data->state.headerb), len);
-  if(result)
-    return result;
-
+  if(!data->state.hconnect || !data->set.suppress_connect_headers) {
+    writetype = CLIENTWRITE_HEADER|CLIENTWRITE_STATUS;
+    result = Curl_client_write(data, writetype,
+                               Curl_dyn_ptr(&data->state.headerb), len);
+    if(result)
+      return result;
+  }
   result = Curl_bump_headersize(data, len, FALSE);
   return result;
 }
@@ -543,9 +551,11 @@ CURLcode Curl_hyper_stream(struct Curl_easy *data,
 
 static CURLcode debug_request(struct Curl_easy *data,
                               const char *method,
-                              const char *path)
+                              const char *path,
+                              bool h2)
 {
-  char *req = aprintf("%s %s HTTP/1.1\r\n", method, path);
+  char *req = aprintf("%s %s HTTP/%s\r\n", method, path,
+                      h2?"2":"1.1");
   if(!req)
     return CURLE_OUT_OF_MEMORY;
   Curl_debug(data, CURLINFO_HEADER_OUT, req, strlen(req));
@@ -627,6 +637,7 @@ CURLcode Curl_hyper_header(struct Curl_easy *data, hyper_headers *headers,
 static CURLcode request_target(struct Curl_easy *data,
                                struct connectdata *conn,
                                const char *method,
+                               bool h2,
                                hyper_request *req)
 {
   CURLcode result;
@@ -638,13 +649,26 @@ static CURLcode request_target(struct Curl_easy *data,
   if(result)
     return result;
 
-  if(hyper_request_set_uri(req, (uint8_t *)Curl_dyn_uptr(&r),
+  if(h2 && hyper_request_set_uri_parts(req,
+                                       /* scheme */
+                                       (uint8_t *)data->state.up.scheme,
+                                       strlen(data->state.up.scheme),
+                                       /* authority */
+                                       (uint8_t *)conn->host.name,
+                                       strlen(conn->host.name),
+                                       /* path_and_query */
+                                       (uint8_t *)Curl_dyn_uptr(&r),
+                                       Curl_dyn_len(&r))) {
+    failf(data, "error setting uri parts to hyper");
+    result = CURLE_OUT_OF_MEMORY;
+  }
+  else if(!h2 && hyper_request_set_uri(req, (uint8_t *)Curl_dyn_uptr(&r),
                                        Curl_dyn_len(&r))) {
     failf(data, "error setting uri to hyper");
     result = CURLE_OUT_OF_MEMORY;
   }
   else
-    result = debug_request(data, method, Curl_dyn_ptr(&r));
+    result = debug_request(data, method, Curl_dyn_ptr(&r), h2);
 
   Curl_dyn_free(&r);
 
@@ -875,6 +899,7 @@ CURLcode Curl_http(struct Curl_easy *data, bool *done)
   const char *p_accept; /* Accept: string */
   const char *method;
   Curl_HttpReq httpreq;
+  bool h2 = FALSE;
   const char *te = NULL; /* transfer-encoding */
   hyper_code rc;
 
@@ -882,7 +907,6 @@ CURLcode Curl_http(struct Curl_easy *data, bool *done)
      may be parts of the request that is not yet sent, since we can deal with
      the rest of the request in the PERFORM phase. */
   *done = TRUE;
-  Curl_client_cleanup(data);
 
   infof(data, "Time for the Hyper dance");
   memset(h, 0, sizeof(struct hyptransfer));
@@ -892,8 +916,6 @@ CURLcode Curl_http(struct Curl_easy *data, bool *done)
     return result;
 
   Curl_http_method(data, conn, &method, &httpreq);
-
-  DEBUGASSERT(data->req.bytecount ==  0);
 
   /* setup the authentication headers */
   {
@@ -950,9 +972,8 @@ CURLcode Curl_http(struct Curl_easy *data, bool *done)
     goto error;
   }
   if(conn->alpn == CURL_HTTP_VERSION_2) {
-    failf(data, "ALPN protocol h2 not supported with Hyper");
-    result = CURLE_UNSUPPORTED_PROTOCOL;
-    goto error;
+    hyper_clientconn_options_http2(options, 1);
+    h2 = TRUE;
   }
   hyper_clientconn_options_set_preserve_header_case(options, 1);
   hyper_clientconn_options_set_preserve_header_order(options, 1);
@@ -1003,7 +1024,7 @@ CURLcode Curl_http(struct Curl_easy *data, bool *done)
     }
   }
   else {
-    if(!data->state.disableexpect) {
+    if(!h2 && !data->state.disableexpect) {
       data->state.expect100header = TRUE;
     }
   }
@@ -1014,7 +1035,7 @@ CURLcode Curl_http(struct Curl_easy *data, bool *done)
     goto error;
   }
 
-  result = request_target(data, conn, method, req);
+  result = request_target(data, conn, method, h2, req);
   if(result)
     goto error;
 
@@ -1035,10 +1056,19 @@ CURLcode Curl_http(struct Curl_easy *data, bool *done)
   if(result)
     goto error;
 
-  if(data->state.aptr.host) {
-    result = Curl_hyper_header(data, headers, data->state.aptr.host);
-    if(result)
-      goto error;
+  if(!h2) {
+    if(data->state.aptr.host) {
+      result = Curl_hyper_header(data, headers, data->state.aptr.host);
+      if(result)
+        goto error;
+    }
+  }
+  else {
+    /* For HTTP/2, we show the Host: header as if we sent it, to make it look
+       like for HTTP/1 but it isn't actually sent since :authority is then
+       used. */
+    Curl_debug(data, CURLINFO_HEADER_OUT, data->state.aptr.host,
+               strlen(data->state.aptr.host));
   }
 
   if(data->state.aptr.proxyuserpwd) {

@@ -66,23 +66,13 @@ static CURLcode glob_fixed(struct URLGlob *glob, char *fixed, size_t len)
  */
 static int multiply(curl_off_t *amount, curl_off_t with)
 {
-  curl_off_t sum;
-  DEBUGASSERT(*amount >= 0);
-  DEBUGASSERT(with >= 0);
-  if((with <= 0) || (*amount <= 0)) {
-    sum = 0;
+  curl_off_t sum = *amount * with;
+  if(!with) {
+    *amount = 0;
+    return 0;
   }
-  else {
-#if defined(__GNUC__) && \
-  ((__GNUC__ > 5) || ((__GNUC__ == 5) && (__GNUC_MINOR__ >= 1)))
-    if(__builtin_mul_overflow(*amount, with, &sum))
-      return 1;
-#else
-    sum = *amount * with;
-    if(sum/with != *amount)
-      return 1; /* didn't fit, bail out */
-#endif
-  }
+  if(sum/with != *amount)
+    return 1; /* didn't fit, bail out */
   *amount = sum;
   return 0;
 }
@@ -702,7 +692,7 @@ CURLcode glob_match_url(char **result, char *filename, struct URLGlob *glob)
   if(curlx_dyn_addn(&dyn, "", 0))
     return CURLE_OUT_OF_MEMORY;
 
-#if defined(_WIN32) || defined(MSDOS)
+#if defined(MSDOS) || defined(WIN32)
   {
     char *sanitized;
     SANITIZEcode sc = sanitize_file_name(&sanitized, curlx_dyn_ptr(&dyn),
@@ -717,5 +707,5 @@ CURLcode glob_match_url(char **result, char *filename, struct URLGlob *glob)
 #else
   *result = curlx_dyn_ptr(&dyn);
   return CURLE_OK;
-#endif /* _WIN32 || MSDOS */
+#endif /* MSDOS || WIN32 */
 }

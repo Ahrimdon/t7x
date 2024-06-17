@@ -1,8 +1,7 @@
 // This file is part of AsmJit project <https://asmjit.com>
 //
 // See asmjit.h or LICENSE.md for license and copyright information
-// SPDX-License-Identifier: Zlib
-
+// SPDX-License-Identifier: (Zlib or Unlicense)
 
 (function($scope, $as) {
 "use strict";
@@ -36,7 +35,7 @@ arm.dbName = "isa_aarch64.json";
 
 // Can be used to assign the number of bits each part of the opcode occupies.
 // NOTE: THUMB instructions that use halfword must always specify the width
-// of all registers as many instructictions accept only LO (r0..r7) registers.
+// of all registers as many instructions accept only LO (r0..r7) registers.
 const FieldInfo = {
   "P"     : { "bits": 1 },
   "U"     : { "bits": 1 },

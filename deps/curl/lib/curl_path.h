@@ -28,7 +28,7 @@
 #include <curl/curl.h>
 #include "urldata.h"
 
-#ifdef _WIN32
+#ifdef WIN32
 #  undef  PATH_MAX
 #  define PATH_MAX MAX_PATH
 #  ifndef R_OK

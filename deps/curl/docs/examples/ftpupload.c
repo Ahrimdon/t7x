@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#ifdef _WIN32
+#ifdef WIN32
 #include <io.h>
 #else
 #include <unistd.h>

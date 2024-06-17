@@ -339,8 +339,8 @@ static CURLproxycode do_SOCKS4(struct Curl_cfilter *cf,
 
     if(dns) {
 #ifdef CURLRES_ASYNCH
-      conn->resolve_async.dns = dns;
-      conn->resolve_async.done = TRUE;
+      data->state.async.dns = dns;
+      data->state.async.done = TRUE;
 #endif
       infof(data, "Hostname '%s' was found", sx->hostname);
       sxstate(sx, data, CONNECT_RESOLVED);
@@ -402,11 +402,8 @@ CONNECT_REQ_INIT:
     socksreq[8] = 0; /* ensure empty userid is NUL-terminated */
     if(sx->proxy_user) {
       size_t plen = strlen(sx->proxy_user);
-      if(plen > 255) {
-        /* there is no real size limit to this field in the protocol, but
-           SOCKS5 limits the proxy user field to 255 bytes and it seems likely
-           that a longer field is either a mistake or malicious input */
-        failf(data, "Too long SOCKS proxy user name");
+      if(plen >= (size_t)data->set.buffer_size - 8) {
+        failf(data, "Too long SOCKS proxy user name, can't use");
         return CURLPX_LONG_USER;
       }
       /* copy the proxy name WITH trailing zero */
@@ -429,8 +426,7 @@ CONNECT_REQ_INIT:
         socksreq[7] = 1;
         /* append hostname */
         hostnamelen = strlen(sx->hostname) + 1; /* length including NUL */
-        if((hostnamelen <= 255) &&
-           (packetsize + hostnamelen < data->set.buffer_size))
+        if(hostnamelen <= 255)
           strcpy((char *)socksreq + packetsize, sx->hostname);
         else {
           failf(data, "SOCKS4: too long host name");
@@ -806,8 +802,8 @@ CONNECT_REQ_INIT:
 
     if(dns) {
 #ifdef CURLRES_ASYNCH
-      conn->resolve_async.dns = dns;
-      conn->resolve_async.done = TRUE;
+      data->state.async.dns = dns;
+      data->state.async.done = TRUE;
 #endif
       infof(data, "SOCKS5: hostname '%s' found", sx->hostname);
     }
@@ -823,19 +819,10 @@ CONNECT_REQ_INIT:
     /* FALLTHROUGH */
 CONNECT_RESOLVED:
   case CONNECT_RESOLVED: {
-    char dest[MAX_IPADR_LEN];  /* printable address */
+    char dest[MAX_IPADR_LEN] = "unknown";  /* printable address */
     struct Curl_addrinfo *hp = NULL;
     if(dns)
       hp = dns->addr;
-#ifdef ENABLE_IPV6
-    if(data->set.ipver != CURL_IPRESOLVE_WHATEVER) {
-      int wanted_family = data->set.ipver == CURL_IPRESOLVE_V4 ?
-        AF_INET : AF_INET6;
-      /* scan for the first proper address */
-      while(hp && (hp->ai_family != wanted_family))
-        hp = hp->ai_next;
-    }
-#endif
     if(!hp) {
       failf(data, "Failed to resolve \"%s\" for SOCKS5 connect.",
             sx->hostname);
@@ -1132,7 +1119,7 @@ static CURLcode socks_proxy_cf_connect(struct Curl_cfilter *cf,
     return result;
 
   if(!sx) {
-    sx = calloc(1, sizeof(*sx));
+    sx = calloc(sizeof(*sx), 1);
     if(!sx)
       return CURLE_OUT_OF_MEMORY;
     cf->ctx = sx;
@@ -1170,29 +1157,32 @@ static CURLcode socks_proxy_cf_connect(struct Curl_cfilter *cf,
   return result;
 }
 
-static void socks_cf_adjust_pollset(struct Curl_cfilter *cf,
+static int socks_cf_get_select_socks(struct Curl_cfilter *cf,
                                      struct Curl_easy *data,
-                                     struct easy_pollset *ps)
+                                     curl_socket_t *socks)
 {
   struct socks_state *sx = cf->ctx;
+  int fds;
 
-  if(!cf->connected && sx) {
+  fds = cf->next->cft->get_select_socks(cf->next, data, socks);
+  if(!fds && cf->next->connected && !cf->connected && sx) {
     /* If we are not connected, the filter below is and has nothing
      * to wait on, we determine what to wait for. */
-    curl_socket_t sock = Curl_conn_cf_get_socket(cf, data);
+    socks[0] = Curl_conn_cf_get_socket(cf, data);
     switch(sx->state) {
     case CONNECT_RESOLVING:
     case CONNECT_SOCKS_READ:
     case CONNECT_AUTH_READ:
     case CONNECT_REQ_READ:
     case CONNECT_REQ_READ_MORE:
-      Curl_pollset_set_in_only(data, ps, sock);
+      fds = GETSOCK_READSOCK(0);
       break;
     default:
-      Curl_pollset_set_out_only(data, ps, sock);
+      fds = GETSOCK_WRITESOCK(0);
       break;
     }
   }
+  return fds;
 }
 
 static void socks_proxy_cf_close(struct Curl_cfilter *cf,
@@ -1237,7 +1227,7 @@ struct Curl_cftype Curl_cft_socks_proxy = {
   socks_proxy_cf_connect,
   socks_proxy_cf_close,
   socks_cf_get_host,
-  socks_cf_adjust_pollset,
+  socks_cf_get_select_socks,
   Curl_cf_def_data_pending,
   Curl_cf_def_send,
   Curl_cf_def_recv,

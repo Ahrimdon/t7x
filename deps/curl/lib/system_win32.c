@@ -24,7 +24,7 @@
 
 #include "curl_setup.h"
 
-#if defined(_WIN32)
+#if defined(WIN32)
 
 #include <curl/curl.h>
 #include "system_win32.h"
@@ -238,4 +238,4 @@ HMODULE Curl_load_library(LPCTSTR filename)
 #endif
 }
 
-#endif /* _WIN32 */
+#endif /* WIN32 */

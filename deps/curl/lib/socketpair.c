@@ -28,7 +28,7 @@
 #include "rand.h"
 
 #if !defined(HAVE_SOCKETPAIR) && !defined(CURL_DISABLE_SOCKETPAIR)
-#ifdef _WIN32
+#ifdef WIN32
 /*
  * This is a socketpair() implementation for Windows.
  */
@@ -50,7 +50,7 @@
 #ifndef INADDR_LOOPBACK
 #define INADDR_LOOPBACK 0x7f000001
 #endif /* !INADDR_LOOPBACK */
-#endif /* !_WIN32 */
+#endif /* !WIN32 */
 
 #include "nonblock.h" /* for curlx_nonblock */
 #include "timeval.h"  /* needed before select.h */
@@ -87,7 +87,7 @@ int Curl_socketpair(int domain, int type, int protocol,
 
   socks[0] = socks[1] = CURL_SOCKET_BAD;
 
-#if defined(_WIN32) || defined(__CYGWIN__)
+#if defined(WIN32) || defined(__CYGWIN__)
   /* don't set SO_REUSEADDR on Windows */
   (void)reuse;
 #ifdef SO_EXCLUSIVEADDRUSE

@@ -7,7 +7,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(libtommath
-    VERSION 1.2.0
+    VERSION 1.3.0
     DESCRIPTION "A free open source portable number theoretic multiple-precision integer (MPI) library written entirely in C."
     HOMEPAGE_URL "https://www.libtom.net/LibTomMath"
     LANGUAGES C)
@@ -28,7 +28,9 @@ option(BUILD_TESTING "" OFF)
 include(CTest)
 include(sources.cmake)
 
-# The only direct cmake argument for now
+#-----------------------------------------------------------------------------
+# Options
+#-----------------------------------------------------------------------------
 option(BUILD_SHARED_LIBS "Build shared library and only the shared library if \"ON\", default is static" OFF)
 
 #-----------------------------------------------------------------------------
@@ -122,7 +124,7 @@ if(COMPILE_LTO)
     if(COMPILER_SUPPORTS_LTO)
         set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
     else()
-        message(SEND_ERROR "This compiler does not support LTO. Reconfigure ${PROJECT_NAME} with -DCOMPILE_LTO=OFF.")
+        message(FATAL_ERROR "This compiler does not support LTO. Reconfigure ${PROJECT_NAME} with -DCOMPILE_LTO=OFF.")
     endif()
 endif()
 

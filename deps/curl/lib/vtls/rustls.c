@@ -386,7 +386,7 @@ cr_init_backend(struct Curl_cfilter *cf, struct Curl_easy *data,
     /* CURLOPT_CAINFO_BLOB overrides CURLOPT_CAINFO */
     (ca_info_blob ? NULL : conn_config->CAfile);
   const bool verifypeer = conn_config->verifypeer;
-  const char *hostname = connssl->peer.hostname;
+  const char *hostname = connssl->hostname;
   char errorbuf[256];
   size_t errorlen;
   int result;
@@ -458,11 +458,12 @@ cr_init_backend(struct Curl_cfilter *cf, struct Curl_easy *data,
   backend->config = rustls_client_config_builder_build(config_builder);
   DEBUGASSERT(rconn == NULL);
   {
-    /* rustls claims to manage ip address hostnames as well here. So,
-     * if we have an SNI, we use it, otherwise we pass the hostname */
-    char *server = connssl->peer.sni?
-                   connssl->peer.sni : connssl->peer.hostname;
-    result = rustls_client_connection_new(backend->config, server, &rconn);
+    char *snihost = Curl_ssl_snihost(data, hostname, NULL);
+    if(!snihost) {
+      failf(data, "rustls: failed to get SNI");
+      return CURLE_SSL_CONNECT_ERROR;
+    }
+    result = rustls_client_connection_new(backend->config, snihost, &rconn);
   }
   if(result != RUSTLS_RESULT_OK) {
     rustls_error(result, errorbuf, sizeof(errorbuf), &errorlen);
@@ -588,28 +589,32 @@ cr_connect_nonblocking(struct Curl_cfilter *cf,
   DEBUGASSERT(false);
 }
 
-static void cr_adjust_pollset(struct Curl_cfilter *cf,
-                              struct Curl_easy *data,
-                              struct easy_pollset *ps)
+/* returns a bitmap of flags for this connection's first socket indicating
+   whether we want to read or write */
+static int
+cr_get_select_socks(struct Curl_cfilter *cf, struct Curl_easy *data,
+                    curl_socket_t *socks)
 {
-  if(!cf->connected) {
-    curl_socket_t sock = Curl_conn_cf_get_socket(cf->next, data);
-    struct ssl_connect_data *const connssl = cf->ctx;
-    struct rustls_ssl_backend_data *const backend =
-      (struct rustls_ssl_backend_data *)connssl->backend;
-    struct rustls_connection *rconn = NULL;
+  struct ssl_connect_data *const connssl = cf->ctx;
+  curl_socket_t sockfd = Curl_conn_cf_get_socket(cf, data);
+  struct rustls_ssl_backend_data *const backend =
+    (struct rustls_ssl_backend_data *)connssl->backend;
+  struct rustls_connection *rconn = NULL;
 
-    (void)data;
-    DEBUGASSERT(backend);
-    rconn = backend->conn;
+  (void)data;
+  DEBUGASSERT(backend);
+  rconn = backend->conn;
 
-    if(rustls_connection_wants_write(rconn)) {
-      Curl_pollset_add_out(data, ps, sock);
-    }
-    if(rustls_connection_wants_read(rconn)) {
-      Curl_pollset_add_in(data, ps, sock);
-    }
+  if(rustls_connection_wants_write(rconn)) {
+    socks[0] = sockfd;
+    return GETSOCK_WRITESOCK(0);
   }
+  if(rustls_connection_wants_read(rconn)) {
+    socks[0] = sockfd;
+    return GETSOCK_READSOCK(0);
+  }
+
+  return GETSOCK_BLANK;
 }
 
 static void *
@@ -672,7 +677,7 @@ const struct Curl_ssl Curl_ssl_rustls = {
   Curl_none_cert_status_request,   /* cert_status_request */
   cr_connect,                      /* connect */
   cr_connect_nonblocking,          /* connect_nonblocking */
-  cr_adjust_pollset,               /* adjust_pollset */
+  cr_get_select_socks,             /* get_select_socks */
   cr_get_internals,                /* get_internals */
   cr_close,                        /* close_one */
   Curl_none_close_all,             /* close_all */

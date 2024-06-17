@@ -179,37 +179,46 @@ namespace asmjit {
 //! AsmJit currently supports only X86/X64 backend, but the plan is to add more backends in the future. By default
 //! AsmJit builds only the host backend, which is auto-detected at compile-time, but this can be overridden.
 //!
-//!   - \ref ASMJIT_NO_X86 - Disable X86/X64 backends.
-//!   - \ref ASMJIT_NO_FOREIGN - Disables the support for foreign architectures.
+//!   - \ref ASMJIT_NO_X86 - Disables both X86 and X86_64 backends.
+//!   - \ref ASMJIT_NO_AARCH64 - Disables AArch64 backend.
+//!   - \ref ASMJIT_NO_FOREIGN - Disables the support for foreign architecture backends, only keeps a native backend.
+//!
+//! ### AsmJit Compilation Options
+//!
+//!   - \ref ASMJIT_NO_DEPRECATED - Disables deprecated API at compile time so it won't be available and the
+//!     compilation will fail if there is attempt to use such API. This includes deprecated classes, namespaces,
+//!     enumerations, and functions.
+//!
+//!   - \ref ASMJIT_NO_SHM_OPEN - Disables functionality that uses `shm_open()`.
+//!
+//!   - \ref ASMJIT_NO_ABI_NAMESPACE - Disables inline ABI namespace within `asmjit` namespace. This is only provided
+//!     for users that control all the dependencies (even transitive ones) and that make sure that no two AsmJit
+//!     versions are used at the same time. This option can be debugging a little simpler as there would not be ABI
+//!     tag after `asmjit::` namespace. Otherwise asmjit would look like `asmjit::_abi_1_13::`, for example.
 //!
 //! ### Features Selection
 //!
 //! AsmJit builds by defaults all supported features, which includes all emitters, logging, instruction validation and
 //! introspection, and JIT memory allocation. Features can be disabled at compile time by using `ASMJIT_NO_...`
 //! definitions.
-//!
-//!   - \ref ASMJIT_NO_DEPRECATED - Disables deprecated API at compile time so it won't be available and the
-//!     compilation will fail if there is attempt to use such API. This includes deprecated classes, namespaces,
-//!     enumerations, and functions.
-//!
-//!   - \ref ASMJIT_NO_BUILDER - Disables \ref asmjit_builder functionality completely. This implies \ref
-//!     ASMJIT_NO_COMPILER as \ref asmjit_compiler cannot be used without \ref asmjit_builder.
-//!
-//!   - \ref ASMJIT_NO_COMPILER - Disables \ref asmjit_compiler functionality completely.
-//!
 //!   - \ref ASMJIT_NO_JIT - Disables JIT memory management and \ref JitRuntime.
-//!
-//!   - \ref ASMJIT_NO_LOGGING - Disables \ref Logger and \ref Formatter.
 //!
 //!   - \ref ASMJIT_NO_TEXT - Disables everything that contains string representation of AsmJit constants, should
 //!     be used together with \ref ASMJIT_NO_LOGGING as logging doesn't make sense without the ability to query
 //!     instruction names, register names, etc...
+//!
+//!   - \ref ASMJIT_NO_LOGGING - Disables \ref Logger and \ref Formatter.
 //!
 //!   - \ref ASMJIT_NO_VALIDATION - Disables validation API.
 //!
 //!   - \ref ASMJIT_NO_INTROSPECTION - Disables instruction introspection API, must be used together with \ref
 //!     ASMJIT_NO_COMPILER as \ref asmjit_compiler requires introspection for its liveness analysis and register
 //!     allocation.
+//!
+//!   - \ref ASMJIT_NO_BUILDER - Disables \ref asmjit_builder functionality completely. This implies \ref
+//!     ASMJIT_NO_COMPILER as \ref asmjit_compiler cannot be used without \ref asmjit_builder.
+//!
+//!   - \ref ASMJIT_NO_COMPILER - Disables \ref asmjit_compiler functionality completely.
 //!
 //! \note It's not recommended to disable features if you plan to build AsmJit as a shared library that will be
 //! used by multiple projects that you don't control how AsmJit was built (for example AsmJit in a Linux distribution).
@@ -231,13 +240,54 @@ namespace asmjit {
 //!
 //! Useful tips before you start:
 //!
-//!   - Visit our [Public Gitter Channel](https://gitter.im/asmjit/asmjit) if you need a quick help.
+//!   - Visit our [Public Gitter Chat](https://app.gitter.im/#/room/#asmjit:gitter.im) if you need a quick help.
 //!
 //!   - Build AsmJit with `ASMJIT_NO_DEPRECATED` macro defined to make sure that you are not using deprecated
 //!     functionality at all. Deprecated functions are decorated with `ASMJIT_DEPRECATED()` macro, but sometimes
 //!     it's not possible to decorate everything like classes, which are used by deprecated functions as well,
 //!     because some compilers would warn about that. If your project compiles fine with `ASMJIT_NO_DEPRECATED`
 //!     it's not using anything, which was deprecated.
+//!
+//! ### Changes committed at 2024-01-01
+//!
+//! Core changes:
+//!
+//!   - Renamed equality functions `eq()` to `equals()` - Only related to `String`, `ZoneVector`, and `CpuFeatures`.
+//!     Old function names were deprecated.
+//!
+//!   - Removed `CallConvId::kNone` in favor of `CallConvId::kCDecl`, which is now the default calling convention.
+//!
+//!   - Deprecated `CallConvId::kHost` in favor of `CallConvId::kCDecl` - host calling convention is now not part
+//!     of CallConvId, it can be calculated from CallConvId and Environment instead.
+//!
+//! ### Changes committed at 2023-12-27
+//!
+//! Core changes:
+//!
+//!   - Renamed `a64::Vec::ElementType` to `a64::VecElementType` and made it a typed enum. This enum was used mostly
+//!     internally, but there is a public API using it, so it's a breaking change.
+//!
+//!   - Refactored `FuncSignature`, `FuncSignatureT`, and `FuncSignatureBuilder`. There is only `FuncSignature` now,
+//!     which acts as a function signature holder and builder. Replace `FuncSignatureBuilder` with `FuncSignature`
+//!     and use `FuncSignature::build<args>` instead of `FuncSignatureT<args>`. The old API has been deprecated.
+//!
+//!   - The maximum number of function arguments was raised from 16 to 32.
+//!
+//! ### Changes committed at 2023-12-26
+//!
+//! Core changes:
+//!
+//!   - Reworked InstNode and InstExNode to be friendlier to static analysis and to not cause undefined behavior.
+//!     InstNode has no operands visually embedded within the struct so there is no _opArray (which was internal).
+//!     This means that sizeof(InstNode) changed, but since it's allocated by AsmJit this should be fine. Moreover,
+//!     there is no longer InstExNode as that was more a hack, instead there is now InstNodeWithOperands, which is
+//!     a template and specifies the number of operands embedded (InstNode accesses these). All nodes that inherited
+//!     InstExNode now just inherit InstNodeWithOperands<InstNode::kBaseOpCapacity>, which would provide the same
+//!     number of nodes as InstNode.
+//!
+//!   - Moved GP and Vec registers from asmjit::arm namespace to asmjit::a64 namespace. At this time there was
+//!     no prior deprecation as having arm::Vec would collide with a64::Vec as arm namespace is used within a64
+//!     namespace. Just change `arm::Gp` to `a64::Gp` and `arm::Vec` to `a64::Vec`.
 //!
 //! ### Changes committed at 2023-09-10
 //!
@@ -419,7 +469,7 @@ namespace asmjit {
 //! // Calling a function (Compiler) changed - use invoke() instead of call().
 //! void functionInvocation(x86::Compiler& cc) {
 //!   InvokeNode* invokeNode;
-//!   cc.invoke(&invokeNode, targetOperand, FuncSignatureT<...>(...));
+//!   cc.invoke(&invokeNode, targetOperand, FuncSignature::build<...>(...));
 //! }
 //! ```
 
@@ -916,12 +966,15 @@ namespace asmjit {
 //! with assembler requires the knowledge of the following:
 //!
 //!   - \ref BaseAssembler and architecture-specific assemblers:
-//!     - \ref x86::Assembler - Assembler specific to X86 architecture
+//!     - \ref x86::Assembler - Assembler implementation targeting X86 and X86_64 architectures.
+//!     - \ref a64::Assembler - Assembler implementation targeting AArch64 architecture.
 //!   - \ref Operand and its variations:
 //!     - \ref BaseReg - Base class for a register operand, inherited by:
-//!        - \ref x86::Reg - Register operand specific to X86 architecture.
+//!        - \ref x86::Reg - Register operand specific to X86 and X86_64 architectures.
+//!        - \ref arm::Reg - Register operand specific to AArch64 architecture.
 //!     - \ref BaseMem - Base class for a memory operand, inherited by:
 //!        - \ref x86::Mem - Memory operand specific to X86 architecture.
+//!        - \ref arm::Mem - Memory operand specific to AArch64 architecture.
 //!     - \ref Imm - Immediate (value) operand.
 //!     - \ref Label - Label operand.
 //!
@@ -1029,7 +1082,7 @@ namespace asmjit {
 //!
 //!   // Type-unsafe, but possible.
 //!   a.emit(x86::Inst::kIdMov, dst, m);
-//!   // Also possible, `emit()` is typeless and can be used with raw Operand.
+//!   // Also possible, `emit()` is type-less and can be used with raw Operand.
 //!   a.emit(x86::Inst::kIdMov, dst, op);
 //! }
 //! ```
@@ -1100,10 +1153,10 @@ namespace asmjit {
 //!
 //! void testX86Mem() {
 //!   // The same as: dword ptr [rax + rbx].
-//!   x86::Mem a = x86::dword_ptr(rax, rbx);
+//!   x86::Mem a = x86::dword_ptr(x86::rax, x86::rbx);
 //!
 //!   // The same as: qword ptr [rdx + rsi << 0 + 1].
-//!   x86::Mem b = x86::qword_ptr(rdx, rsi, 0, 1);
+//!   x86::Mem b = x86::qword_ptr(x86::rdx, x86::rsi, 0, 1);
 //! }
 //! ```
 //!
@@ -1116,18 +1169,18 @@ namespace asmjit {
 //!
 //! void testX86Mem() {
 //!   // The same as: dword ptr [rax + 12].
-//!   x86::Mem mem = x86::dword_ptr(rax, 12);
+//!   x86::Mem mem = x86::dword_ptr(x86::rax, 12);
 //!
 //!   mem.hasBase();                    // true.
 //!   mem.hasIndex();                   // false.
 //!   mem.size();                       // 4.
 //!   mem.offset();                     // 12.
 //!
-//!   mem.setSize(0);                   // Sets the size to 0 (makes it sizeless).
+//!   mem.setSize(0);                   // Sets the size to 0 (makes it size-less).
 //!   mem.addOffset(-1);                // Adds -1 to the offset and makes it 11.
 //!   mem.setOffset(0);                 // Sets the offset to 0.
-//!   mem.setBase(rcx);                 // Changes BASE to RCX.
-//!   mem.setIndex(rax);                // Changes INDEX to RAX.
+//!   mem.setBase(x86::rcx);            // Changes BASE to RCX.
+//!   mem.setIndex(x86::rax);           // Changes INDEX to RAX.
 //!   mem.hasIndex();                   // true.
 //! }
 //! // ...
@@ -1219,7 +1272,8 @@ namespace asmjit {
 //!
 //! ### Builder Examples
 //!
-//!   - \ref x86::Builder provides many X86/X64 examples.
+//!   - \ref x86::Builder - Builder implementation targeting X86 and X86_64 architectures.
+//!   - \ref a64::Builder - Builder implementation targeting AArch64 architecture.
 
 
 //! \defgroup asmjit_compiler Compiler
@@ -1256,7 +1310,8 @@ namespace asmjit {
 //!
 //! ### Compiler Examples
 //!
-//!   - \ref x86::Compiler provides many X86/X64 examples.
+//!   - \ref x86::Compiler - Compiler implementation targeting X86 and X86_64 architectures.
+//!   - \ref a64::Compiler - Compiler implementation targeting AArch64 architecture.
 //!
 //! ### Compiler Tips
 //!
@@ -1428,7 +1483,7 @@ namespace asmjit {
 //! The first example illustrates how to format operands:
 //!
 //! ```
-//! #include <asmjit/core.h>
+//! #include <asmjit/x86.h>
 //! #include <stdio.h>
 //!
 //! using namespace asmjit;
@@ -1453,17 +1508,17 @@ namespace asmjit {
 //!   // compatible with what AsmJit normally does.
 //!   Arch arch = Arch::kX64;
 //!
-//!   log(arch, rax);                    // Prints 'rax'.
-//!   log(arch, ptr(rax, rbx, 2));       // Prints '[rax + rbx * 4]`.
-//!   log(arch, dword_ptr(rax, rbx, 2)); // Prints 'dword [rax + rbx * 4]`.
-//!   log(arch, imm(42));                // Prints '42'.
+//!   logOperand(arch, rax);                    // Prints 'rax'.
+//!   logOperand(arch, ptr(rax, rbx, 2));       // Prints '[rax + rbx * 4]`.
+//!   logOperand(arch, dword_ptr(rax, rbx, 2)); // Prints 'dword [rax + rbx * 4]`.
+//!   logOperand(arch, imm(42));                // Prints '42'.
 //! }
 //! ```
 //!
 //! Next example illustrates how to format whole instructions:
 //!
 //! ```
-//! #include <asmjit/core.h>
+//! #include <asmjit/x86.h>
 //! #include <stdio.h>
 //! #include <utility>
 //!
@@ -1478,7 +1533,7 @@ namespace asmjit {
 //!   FormatFlags formatFlags = FormatFlags::kNone;
 //!
 //!   // The formatter expects operands in an array.
-//!   Operand_ operands { std::forward<Args>(args)... };
+//!   Operand_ operands[] { std::forward<Args>(args)... };
 //!
 //!   StringTmp<128> sb;
 //!   Formatter::formatInstruction(
@@ -1500,13 +1555,13 @@ namespace asmjit {
 //!   // Prints 'vaddpd zmm0, zmm1, [rax] {1to8}'.
 //!   logInstruction(arch,
 //!                  BaseInst(Inst::kIdVaddpd),
-//!                  zmm0, zmm1, ptr(rax)._1toN());
+//!                  zmm0, zmm1, ptr(rax)._1to8());
 //!
 //!   // BaseInst abstracts instruction id, instruction options, and extraReg.
 //!   // Prints 'lock add [rax], rcx'.
 //!   logInstruction(arch,
 //!                  BaseInst(Inst::kIdAdd, InstOptions::kX86_Lock),
-//!                  x86::ptr(rax), rcx);
+//!                  ptr(rax), rcx);
 //!
 //!   // Similarly an extra register (like AVX-512 selector) can be used.
 //!   // Prints 'vaddpd zmm0 {k2} {z}, zmm1, [rax]'.
@@ -1624,7 +1679,7 @@ namespace asmjit {
 //!
 //! Each instruction can be then queried for the following information:
 //!
-//!   - \ref InstRWInfo - Read/write information of instruction and its oprands (includes \ref OpRWInfo).
+//!   - \ref InstRWInfo - Read/write information of instruction and its operands (includes \ref OpRWInfo).
 //!
 //!   - \ref CpuFeatures - CPU features required to execute the instruction.
 //!
