@@ -294,7 +294,7 @@ project "client"
 
 	files {"./src/client/**.rc", "./src/client/**.hpp", "./src/client/**.cpp", "./src/client/resources/**.*"}
 
-	removefiles {"src/client/component/updater.cpp", "src/client/component/updater.hpp", "src/client/updater/**.*"}
+	removefiles {"src/client/component/updater.cpp", "src/client/component/updater.hpp", "src/client/updater/**.*", "src/common/utils/http.cpp", "src/common/utils/http.hpp"}
 
 -- filter { "configurations:Release", "files:src/client/component/updater.cpp" }
 -- 		flags { "ExcludeFromBuild" }
