@@ -172,7 +172,7 @@ jobs:
           body: |
             ### Steam Verification has been removed. You do **<u>NOT</u>** need to own the game in order to play.
             - [Where can I get the game?](https://git.rimmyscorner.com/Rim/t7x#where-can-i-get-the-game)
-            - [Instructions](https://git.rimmyscorner.com/Rim/t7x#instructions)
+            - [Instructions](https://git.rimmyscorner.com/Rim/t7x#install-instructions)
 
             Compiled by [Actions Runner](https://git.rimmyscorner.com/Rim/t7x/actions)
 
