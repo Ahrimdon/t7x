@@ -70,15 +70,26 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "AlterWare"
-            VALUE "FileDescription", "T7x"
-            VALUE "FileVersion", VERSION_FILE
-            VALUE "InternalName", "T7x"
-            VALUE "LegalCopyright", "Copyright (C) 2022 momo5502. All rights reserved."
-            VALUE "Licence", "GPLv3"
-            VALUE "OriginalFilename", "t7x.exe"
             VALUE "ProductName", "T7x"
+            VALUE "CompanyName", "AlterWare"
+            VALUE "FileDescription", "Call of Duty® Black Ops III Client"
+            VALUE "OriginalFilename", "t7x.exe"
+            VALUE "InternalName", "t7x.exe"
+            VALUE "LegalCopyright", "Copyright (C) 2025 AlterWare. All rights reserved."
+            VALUE "LegalTrademarks", "Call of Duty® is a trademark of Activision Publishing, Inc."
+            VALUE "License", "GPLv3"
+            VALUE "Info", "https://git.rimmyscorner.com/Rim/t7x"
+            VALUE "SupportUrl", "https://git.rimmyscorner.com/Rim/t7x/issues"
+            VALUE "Comments", "Fork of https://github.com/alterware/t7x"
+			VALUE "BuildDate", BUILD_DATE
+            VALUE "BuildTime", BUILD_TIME
+			VALUE "BuildType", "Release"
+            VALUE "FileVersion", VERSION_FILE
             VALUE "ProductVersion", VERSION_PRODUCT
+            VALUE "BuildCommit", GIT_HASH
+            VALUE "BuildBranch", GIT_BRANCH
+            VALUE "BuildTag", GIT_TAG
+            VALUE "GitDescribe", GIT_DESCRIBE
         END
     END
     BLOCK "VarFileInfo"
