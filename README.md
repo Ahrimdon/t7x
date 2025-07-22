@@ -213,8 +213,6 @@ The client will work just fine with the pirated files. As the end user, you need
 
 ---
 
-If you’d like, you can also add an extra note for clarity:
-
 > [!NOTE]
 > After installing, you can launch the game and load your mods or custom maps from the in‑game menu.
 
@@ -322,7 +320,7 @@ liable for misuse of the software. Use responsibly.
 
 ### What is T7x ☄️
 
-T7x is a [discontinued][notice-link] game modification for Call of Duty: Black Ops 3.  
+T7x is a [discontinued][notice-link] game modification for Call of Duty: Black Ops 3.
 ~~The Steam version of Black Ops 3 is required to be owned and installed for T7x to work. You can get it from <a href="https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/">here</a>.~~
 
 ### Build
