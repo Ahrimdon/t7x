@@ -14,7 +14,6 @@
 
 #include "game/game.hpp"
 #include "launcher/launcher.hpp"
-#include "component/updater.hpp"
 
 namespace
 {
