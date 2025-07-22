@@ -2,15 +2,15 @@ name: Build and Release T7x
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "cfg/**"
-      - "data/**"
-      - "deps/**"
-      - "installer/**"
-      - "src/**"
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - "cfg/**"
+  #     - "data/**"
+  #     - "deps/**"
+  #     - "installer/**"
+  #     - "src/**"
 
     # paths-ignore:
     #   - ".gitea"
