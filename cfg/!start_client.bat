@@ -3,7 +3,7 @@
 set ConfigFile="config.cfg"
 set ModFolderName=
 
-set game_exe=iw7-mod.exe
+set game_exe=t7x.exe
 
 cd /D "%~dp0"
-start /B /wait /abovenormal %game_exe% -launch -nointro -nosteam +set fs_game %ModFolderName% +exec %ConfigFile%
+start /b /abovenormal %game_exe% -launch -nosteam +set fs_game %ModFolderName% +exec %ConfigFile%
