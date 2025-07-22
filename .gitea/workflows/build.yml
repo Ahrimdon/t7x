@@ -153,13 +153,13 @@ jobs:
           powershell -Command 'Compress-Archive -Path ./release-artifacts/T7DedicatedConfigs/* -DestinationPath ./release-artifacts/T7DedicatedConfigs.zip -Force'
 
         # This is the jankiest shit I've ever done, but it works
-      - name: Delete Tag
-        run: |
-          curl -X "DELETE" "https://git.rimmyscorner.com/api/v1/repos/Rim/t7x-temp/tags/latest" -H "authorization: token ${{ secrets.TOKEN }}"
+      # - name: Delete Tag
+      #   run: |
+      #     curl -X "DELETE" "https://git.rimmyscorner.com/api/v1/repos/Rim/t7x-temp/tags/latest" -H "authorization: token ${{ secrets.TOKEN }}"
 
-      - name: Delete Release
-        run: |
-          curl -X "DELETE" "https://git.rimmyscorner.com/api/v1/repos/Rim/t7x-temp/releases/tags/latest" -H "authorization: token ${{ secrets.TOKEN }}"
+      # - name: Delete Release
+      #   run: |
+      #     curl -X "DELETE" "https://git.rimmyscorner.com/api/v1/repos/Rim/t7x-temp/releases/tags/latest" -H "authorization: token ${{ secrets.TOKEN }}"
 
       - name: Create Release
         id: create_release
