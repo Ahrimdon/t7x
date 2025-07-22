@@ -4,6 +4,7 @@
 #include <random>
 
 #include "nt.hpp"
+#include "io.hpp"
 #include "finally.hpp"
 
 #undef max
@@ -670,5 +671,15 @@ namespace utils::cryptography
 	void random::get_data(void* data, const size_t size)
 	{
 		prng_.read(data, size);
+	}
+
+	std::string compute_file_hash(const std::string& file_path)
+	{
+		std::string data;
+		if (!io::read_file(file_path, &data))
+		{
+			throw std::runtime_error("Failed to read file: " + file_path);
+		}
+		return sha1::compute(data, true);
 	}
 }

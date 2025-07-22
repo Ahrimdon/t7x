@@ -118,4 +118,6 @@ namespace utils::cryptography
 		std::string get_challenge();
 		void get_data(void* data, size_t size);
 	}
+
+	std::string compute_file_hash(const std::string& file_path);
 }

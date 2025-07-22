@@ -8,6 +8,7 @@
 #include <utils/nt.hpp>
 #include <utils/io.hpp>
 #include <utils/flags.hpp>
+#include <utils/cryptography.hpp>
 
 #include <steam/steam.hpp>
 
@@ -17,6 +18,12 @@
 
 namespace
 {
+	bool no_check()
+	{
+		static const auto nocheck = utils::flags::has_flag("nocheck");
+		return nocheck;
+	}
+
 	volatile bool g_call_tls_callbacks = false;
 	std::pair<void**, void*> g_original_import{};
 
@@ -292,14 +299,17 @@ int main()
 
 			const auto is_server = utils::flags::has_flag("dedicated") || (!has_client && has_server);
 
-			if (!has_client && !has_server)
-			{
-				throw std::runtime_error(
-					"Can't find a valid BlackOps3.exe or BlackOps3_UnrankedDedicatedServer.exe. Make sure you put T7x.exe in your Black Ops 3 installation folder.");
-			}
-
 			if (!is_server)
 			{
+				if (!no_check())
+				{
+					const auto hash = utils::cryptography::compute_file_hash(client_binary);
+					if (hash != "9082C9FB766CAEC756C7B6409127F47AEC0C9E51")
+					{
+						throw std::runtime_error("Your BlackOps3.exe is incompatible with this client.");
+					}
+				}
+
 				trigger_high_performance_gpu_switch();
 
 				const auto launch = utils::flags::has_flag("launch");
@@ -307,6 +317,24 @@ int main()
 				{
 					return 0;
 				}
+			}
+
+			if (is_server)
+			{
+				if (!no_check())
+				{
+					const auto hash = utils::cryptography::compute_file_hash(server_binary);
+					if (hash != "9D5FDD6F44DEFB8D65F8F5256E4EB83D4547F408")
+					{
+						throw std::runtime_error("Your BlackOps3_UnrankedDedicatedServer.exe is incompatible with this client.");
+					}
+				}
+			}
+
+			if (!has_client && !has_server)
+			{
+				throw std::runtime_error(
+					"Can't find a valid BlackOps3.exe or BlackOps3_UnrankedDedicatedServer.exe. Make sure you put T7x.exe in your Black Ops 3 installation folder.");
 			}
 
 			if (!component_loader::activate(is_server))
