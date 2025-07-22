@@ -32,6 +32,7 @@
   - [Downloading qBittorrent](#downloading-qbittorrent)
   - [What if I have a pirated version of Call of Duty®: Black Ops III?](#what-if-i-have-a-pirated-version-of-call-of-duty-black-ops-iii)
 - [Command Line Arguments](#command-line-arguments)
+- [Loading Mods \& Custom Maps](#loading-mods--custom-maps)
 - [Hosting a Dedicated Server](#hosting-a-dedicated-server)
   - [Requirements](#requirements)
   - [Server Setup](#server-setup)
@@ -73,7 +74,7 @@
 
 > [!TIP]
 >
-> - Run installer as Administrator if your game installation is in a protected folder (e.g. `C:\Program Files`)
+> - Run installer as Administrator if your game installation is in a protected folder (e.g. `C:/Program Files`)
 > - You **DO NOT** need to disable your anti-virus to run the installer
 
 > [!NOTE]
@@ -155,7 +156,7 @@ If you don't have git installed on your machine, follow these steps:
 
 1. Visit the [qBittorrent Download Page](https://www.qbittorrent.org/download) and install the latest version of qBittorrent
 2. Open `.torrent` files in qBittorrent
-3. Set your game(s) folder as your download directory (**_e.g._** `C:\Program Files (x86)\Steam\steamapps\common\Call of Duty...` or `D:\Games\Call of Duty...`)
+3. Set your game(s) folder as your download directory (**_e.g._** `C:/Program Files (x86)/Steam/steamapps/common/Call of Duty...` or `D:/Games/Call of Duty...`)
 4. **Important:** On the "Content layout" drop-down menu, select "Don't create subfolder"
 5. Start the download and wait till it says "100% - Seeding"
 6. You can now remove the torrent from qBittorrent (right click -> remove) or keep seeding to help others download faster
@@ -174,11 +175,48 @@ The client will work just fine with the pirated files. As the end user, you need
 | Argument      | Description                                                            |
 |:--------------|:-----------------------------------------------------------------------|
 | `-unsafe-lua` | Allow in-game mods to executable unsafe lua functions                  |
-| `-nosteam`    | Bypass Steam                                                           |
+| `-nosteam`    | Bypass Steam proxy                                                     |
 | `-launch`     | Bypass launcher window and launch game directly                        |
 | `-nointro`    | Skip intro animation sequence                                          |
 | `-nocheck`    | Skip game binary hash checks                                           |
 | `-headless`   | Direct output of `stdout` and `stderr` to current terminal environment |
+
+## Loading Mods & Custom Maps
+
+> [!TIP]
+> **Default Workshop Location (if you own the game):**
+> `C:/Program Files (x86)/Steam/steamapps/workshop/content/311210/`
+>
+> If you already have the workshop files downloaded through Steam, skip **Step 1** below.
+
+**Steps:**
+
+1. **Download the mod or map**
+   Use the *T7x Workshop Downloader (T7xWD)* to download the desired content.
+
+2. **Create the folders (if they don’t exist)**
+   Inside your game directory, create the following folders if they don't exist:
+
+   ``` bash
+   Call of Duty Black Ops III/
+     ├─ mods/
+     └─ usermaps/
+   ```
+
+3. **Place the files:**
+
+- **Mods:** Place each mod in the `mods/` folder
+  *(Example: `Call of Duty Black Ops III/mods/3413662211`)*
+
+- **Custom Maps:** Place each map in the `usermaps/` folder
+  *(Example: `Call of Duty Black Ops III/usermaps/3435762796`)*
+
+---
+
+If you’d like, you can also add an extra note for clarity:
+
+> [!NOTE]
+> After installing, you can launch the game and load your mods or custom maps from the in‑game menu.
 
 ## Hosting a Dedicated Server
 
