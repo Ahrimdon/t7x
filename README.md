@@ -206,9 +206,11 @@ The client will work just fine with the pirated files. As the end user, you need
 3. **Place the files:**
 
 - **Mods:** Place each mod in the `mods/` folder
+
   *(Example: `Call of Duty Black Ops III/mods/3413662211`)*
 
 - **Custom Maps:** Place each map in the `usermaps/` folder
+
   *(Example: `Call of Duty Black Ops III/usermaps/3435762796`)*
 
 ---
