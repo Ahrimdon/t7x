@@ -23,21 +23,22 @@
 - [Install Instructions](#install-instructions)
   - [Installer](#installer)
   - [Zip Archive (Manual Installation)](#zip-archive-manual-installation)
-- [Cloning the repository](#cloning-the-repository)
+- [Cloning the Repository](#cloning-the-repository)
   - [Using Git](#using-git)
 - [Repository Contents](#repository-contents)
 - [Added Features](#added-features)
   - [Installing Git (Optional)](#installing-git-optional)
-- [Where can I get the game?](#where-can-i-get-the-game)
+- [Where Can I Get the Game?](#where-can-i-get-the-game)
   - [Downloading qBittorrent](#downloading-qbittorrent)
-  - [What if I have a pirated version of Call of Duty®: Black Ops III?](#what-if-i-have-a-pirated-version-of-call-of-duty-black-ops-iii)
+  - [What If I Have a Pirated version?](#what-if-i-have-a-pirated-version)
 - [Command Line Arguments](#command-line-arguments)
 - [Loading Mods \& Custom Maps](#loading-mods--custom-maps)
 - [Hosting a Dedicated Server](#hosting-a-dedicated-server)
   - [Requirements](#requirements)
   - [Server Setup](#server-setup)
   - [Connecting](#connecting)
-- [Additional Steps required for hosting Zombies Dedicated Servers](#additional-steps-required-for-hosting-zombies-dedicated-servers)
+  - [Connecting to Friends Without Port Forwarding](#connecting-to-friends-without-port-forwarding)
+- [Additional Steps Required for Hosting Zombies Dedicated Servers](#additional-steps-required-for-hosting-zombies-dedicated-servers)
 - [Compile from Source Code](#compile-from-source-code)
   - [Prerequisites](#prerequisites-1)
   - [Build](#build)
@@ -80,9 +81,8 @@
 > [!NOTE]
 The Installer:
 >
-> - Installs the t7x Client
-> - Places the required client files and scripts
-> - Places the server configuration files in
+> - Installs the t7x client files and scripts
+> - Places the server configuration files
 > - Gives you the option to a Desktop shortcut for the t7x Client
 > - Creates uninstaller to remove all files
 
@@ -99,7 +99,7 @@ The Uninstaller:
 3. Launch the game using either `t7x.exe` or `!start_client.bat`
 4. You can change your name by modifying `Call of Duty Black Ops III/t7x/players/properties.json` or use `/name PLAYERNAME` in-game.
 
-## Cloning the repository
+## Cloning the Repository
 
 ### <u>Using Git</u>
 
@@ -124,12 +124,12 @@ The Uninstaller:
 - Remove Steam Ownership Verification
 - Removed T7x Watermark
 - No Auto-Update (The new ext.dll adds Steam Verification, this is *CRUCIAL* if you do not own the game)
-- Reverted launcher to the original style
-- Changed executable icon to match original
-- Binary verification
-- Intro Skip flag
-- Portable mode
-- Add files.json for users to host their own Master Server/HTTP fastDL Index
+- Reverted Launcher to the Original Style
+- Changed Resource Icon to Match Original
+- Binary Verification
+- Intro Skip Flag
+- Portable Mode
+- Sample `files.json` for users to host their own Master Server/HTTP fastDL Index
 
 ### Installing Git (Optional)
 
@@ -141,7 +141,7 @@ If you don't have git installed on your machine, follow these steps:
    - During the installation, you will be asked if you want to add Git to your system's PATH environment variable. Ensure you choose the option to do so. This allows you to use Git from the command line without specifying its full path.
 4. After installation, open a terminal or command prompt and type `git --version` to ensure Git is correctly installed.
 
-## Where can I get the game?
+## Where Can I Get the Game?
 
 1. You can get the game on [Steam](https://store.steampowered.com/agecheck/app/292730/) (preferred)
 2. If you can't afford the game. Oh well, you tried. You can get the game files for free [directly](https://gofile.io/d/7pvpEs) or torrent them [here](https://git.rimmyscorner.com/Rim/cod-games-download/releases/download/latest/t7_full_game.zip).
@@ -166,7 +166,7 @@ If you don't have git installed on your machine, follow these steps:
 > [!TIP]
 > Use a free, open source and ad-free torrenting software such as [qBittorrent](https://www.qbittorrent.org/download)
 
-### What if I have a pirated version of Call of Duty®: Black Ops III?
+### What If I Have a Pirated version?
 
 The client will work just fine with the pirated files. As the end user, you need to ensure that you have the most up-to-date and latest files/binaries. I have added a binary verification to the client. This means, that if you do not have the correct `BlackOps3.exe` or `BlackOps3_UnrankedDedicatedServer.exe` executables, the client will fail to launch. This is not the same thing as ownership verification.
 
@@ -184,17 +184,19 @@ The client will work just fine with the pirated files. As the end user, you need
 ## Loading Mods & Custom Maps
 
 > [!TIP]
-> **Default Workshop Location (if you own the game):**
+> **Default Workshop Location (If You Own the Game):**
 > `C:/Program Files (x86)/Steam/steamapps/workshop/content/311210/`
 >
 > If you already have the workshop files downloaded through Steam, skip **Step 1** below.
 
 **Steps:**
 
-1. **Download the mod or map**
+1. **Download the Mod or Map**
+
    Use the *[T7x Workshop Downloader (T7xWD)](https://git.rimmyscorner.com/Rim/T7x-Workshop-Downloader/releases)* to download the desired content.
 
-2. **Create the folders (if they don’t exist)**
+2. **Create the Folders (If They Don’t Exist)**
+
    Inside your game directory, create the following folders if they don't exist:
 
    ``` bash
@@ -203,7 +205,7 @@ The client will work just fine with the pirated files. As the end user, you need
      └─ usermaps/
    ```
 
-3. **Place the files:**
+3. **Place the Files:**
 
 - **Mods:** Place each mod in the `mods/` folder
 
@@ -245,8 +247,21 @@ The client will work just fine with the pirated files. As the end user, you need
    - Obtain your WAN IPv4 address by visiting a site like [WhatIsMyIP](https://www.whatismyip.com/) or [IPChicken](https://ipchicken.com/). If you have curl installed, you run the command `curl ifconfig.me`
 > Local Example: Connecting locally would look like `/connect 192.168.0.202:27017`\
 > WAN Example: Connecting over the internet would look like `/connect 192.145.117.83:27017` (*you must [forward ports](#forward-ports) on your router*)
+>
 
-## Additional Steps required for hosting Zombies Dedicated Servers
+### Connecting to Friends Without Port Forwarding
+
+- You can use these applications to connect to friends **without** port forwarding!
+    - ZeroTier
+    - RadminVPN
+    - LogMeIn Hamachi 
+
+1. Download the tool of your choice
+2. Create a network and have anyone you want to play with join it
+3. Start a game of multiplayer / zombies
+4. Have your friends connect using `/connect ip:port` (Default port is `27017`)
+
+## Additional Steps Required for Hosting Zombies Dedicated Servers
 
 As of right now you need to take additional Steps to host Zombies Servers.
 For Zombie Dedis to work they need to have the Zombies Maps and common FastFiles, these do not come with the UnrankedServer Files. This means you need to copy those over from your installed BO3 game folder.
