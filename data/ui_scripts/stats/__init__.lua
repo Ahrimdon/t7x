@@ -91,7 +91,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 				},
 			}, nil, updateDvar))
 	table.insert(optionsTable,
-		CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock all Camos and Reticles",
+		CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock All Camos and Reticles",
 			"All camos and reticles on weapons are unlocked.", "MPStatsSettings_unlockall_camos_and_reticles",
 			"cg_unlockall_camos_and_reticles", {
 				{
@@ -105,7 +105,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 				},
 			}, nil, updateDvar))
 	table.insert(optionsTable,
-		CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock all Calling Cards", "All calling cards are unlocked.",
+		CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock All Calling Cards", "All calling cards are unlocked.",
 			"MPStatsSettings_unlockall_calling_cards", "cg_unlockall_calling_cards", {
 				{
 					option = "MENU_DISABLED",
@@ -119,7 +119,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 			}, nil, updateDvar))
 	if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
 		table.insert(optionsTable,
-			CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock all Specialists Outfits",
+			CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock All Specialists Outfits",
 				"All specialists outfits are unlocked.", "MPStatsSettings_unlockall_specialists_outfits",
 				"cg_unlockall_specialists_outfits", {
 					{
