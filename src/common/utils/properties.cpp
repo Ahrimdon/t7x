@@ -19,9 +19,33 @@ namespace utils::properties
 		typedef rapidjson::EncodedOutputStream<rapidjson::UTF8<>, rapidjson::FileWriteStream> OutputStream;
 		typedef rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::FileReadStream> InputStream;
 
+		std::filesystem::path get_base_path()
+		{
+			static auto base = []()
+			{
+				// Check current directory first
+				auto current = std::filesystem::current_path() / "t7x";
+				if (io::file_exists(current / "ext.dll"))
+				{
+					return current;
+				}
+
+				// Fall back to appdata
+				PWSTR path;
+				if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
+				{
+					auto _ = utils::finally([&] { CoTaskMemFree(path); });
+					return std::filesystem::path(path) / "t7x";
+				}
+
+				return current; // Default fallback
+			}();
+			return base;
+		}
+
 		std::filesystem::path get_properties_folder()
 		{
-			static auto props = get_appdata_path() / "user";
+			static auto props = get_base_path() / "user";
 			return props;
 		}
 
@@ -114,19 +138,7 @@ namespace utils::properties
 
 	std::filesystem::path get_appdata_path()
 	{
-		PWSTR path;
-		if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
-		{
-			throw std::runtime_error("Failed to read APPDATA path!");
-		}
-
-		auto _ = utils::finally([&path]
-		{
-			CoTaskMemFree(path);
-		});
-
-		static auto appdata = std::filesystem::path(path) / "t7x";
-		return appdata;
+		return get_base_path();
 	}
 
 	std::unique_lock<named_mutex> lock()
