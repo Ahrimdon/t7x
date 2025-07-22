@@ -6,4 +6,4 @@ set ModFolderName=
 set game_exe=t7x.exe
 
 cd /D "%~dp0"
-start /b /abovenormal %game_exe% -launch -nosteam +set fs_game %ModFolderName% +exec %ConfigFile%
+start /b /abovenormal %game_exe% -launch +set fs_game %ModFolderName% +exec %ConfigFile%
