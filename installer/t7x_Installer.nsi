@@ -92,13 +92,13 @@ Section "Game Directory Zone Files" SecZoneData
     File /r "..\cfg\zone\*.*"
 SectionEnd
 
-Section "LocalAppData Extension File" SecExt
-    SetOutPath $LOCALAPPDATA\t7x
+Section "Extension File" SecExt
+    SetOutPath $INSTDIR\t7x
     File "..\ext\ext.dll"
 SectionEnd
 
-Section "LocalAppData Data Files" SecData
-    SetOutPath $LOCALAPPDATA\t7x\data
+Section "Data Files" SecData
+    SetOutPath $INSTDIR\t7x\data
     File /r "..\data\*.*"
 SectionEnd
 
@@ -124,7 +124,7 @@ Section "Uninstall"
 
     RMDir /r $INSTDIR\t7x
     RMDir /r $LOCALAPPDATA\t7x
-    
+
     Delete "$INSTDIR\Uninstall.exe"
     RMDir $INSTDIR
 SectionEnd
