@@ -192,7 +192,7 @@ The client will work just fine with the pirated files. As the end user, you need
 **Steps:**
 
 1. **Download the mod or map**
-   Use the *T7x Workshop Downloader (T7xWD)* to download the desired content.
+   Use the *[T7x Workshop Downloader (T7xWD)](https://git.rimmyscorner.com/Rim/T7x-Workshop-Downloader/releases)* to download the desired content.
 
 2. **Create the folders (if they don’t exist)**
    Inside your game directory, create the following folders if they don't exist:
