@@ -141,6 +141,23 @@ namespace utils::properties
 		return get_base_path();
 	}
 
+	std::filesystem::path get_real_appdata_path()
+	{
+		PWSTR path;
+		if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
+		{
+			throw std::runtime_error("Failed to read APPDATA path!");
+		}
+
+		auto _ = utils::finally([&path]
+		{
+			CoTaskMemFree(path);
+		});
+
+		static auto cache = std::filesystem::path(path) / "cache";
+		return cache;
+	}
+
 	std::unique_lock<named_mutex> lock()
 	{
 		static named_mutex mutex{"t7x-properties-lock"};

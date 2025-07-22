@@ -24,6 +24,53 @@ namespace
 		return nocheck;
 	}
 
+	bool ensure_cache_files()
+	{
+		try
+		{
+			// get the cache directory path
+			const auto cache_dir = game::get_real_appdata_path();
+
+			// ensure the cache directory exists first
+			if (!utils::io::directory_exists(cache_dir))
+			{
+				if (!utils::io::create_directory(cache_dir))
+				{
+					return false;
+				}
+			}
+
+			// define file paths
+			const auto cache_file = cache_dir / "cache.bin";
+			const auto data_file = cache_dir / "data.bin";
+
+			// check and create cache.bin if it doesn't exist
+			if (!utils::io::file_exists(cache_file))
+			{
+				if (!utils::io::write_file(cache_file.string(), ""))
+				{
+					return false;
+				}
+			}
+
+			// check and create data.bin if it doesn't exist
+			if (!utils::io::file_exists(data_file))
+			{
+				if (!utils::io::write_file(data_file.string(), ""))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+		catch (const std::exception& e)
+		{
+			game::show_error(e.what());
+			return false; // return false instead of 1 for boolean type
+		}
+	}
+
 	volatile bool g_call_tls_callbacks = false;
 	std::pair<void**, void*> g_original_import{};
 
@@ -341,6 +388,8 @@ int main()
 			{
 				return 1;
 			}
+
+			ensure_cache_files();
 
 			entry_point = load_process(is_server ? server_binary : client_binary);
 			if (!entry_point)

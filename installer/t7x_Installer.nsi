@@ -103,12 +103,6 @@ Section "LocalAppData Data Files" SecData
     File /r "..\data\*.*"
 SectionEnd
 
-Section "LocalAppData Cache Files" SecCache
-    SetOutPath $LOCALAPPDATA\cache
-    File "..\cache\cache.bin"
-    File "..\cache\data.bin"
-SectionEnd
-
 Function finishpageaction
     SetOutPath $INSTDIR
     CreateShortcut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\t7x.exe" "" "$INSTDIR\t7x.exe"

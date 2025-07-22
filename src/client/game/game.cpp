@@ -73,4 +73,9 @@ namespace game
 	{
 		return utils::properties::get_appdata_path();
 	}
+
+	std::filesystem::path get_real_appdata_path()
+	{
+		return utils::properties::get_real_appdata_path();
+	}
 }
