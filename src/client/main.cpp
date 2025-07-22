@@ -277,7 +277,7 @@ int main()
 		{
 			validate_non_network_share();
 			remove_crash_file();
-			updater::update();
+			// updater::update();
 
 			if (!utils::io::file_exists(launcher::get_launcher_ui_file().generic_wstring()))
 			{

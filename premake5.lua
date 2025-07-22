@@ -291,6 +291,12 @@ project "client"
 
 	files {"./src/client/**.rc", "./src/client/**.hpp", "./src/client/**.cpp", "./src/client/resources/**.*"}
 
+	removefiles {"src/client/component/updater.cpp", "src/client/component/updater.hpp", "src/client/updater/**.*"}
+
+-- filter { "configurations:Release", "files:src/client/component/updater.cpp" }
+-- 		flags { "ExcludeFromBuild" }
+-- filter {}
+
 	includedirs {"./src/client", "./src/common", "%{prj.location}/src"}
 
 	resincludedirs {"$(ProjectDir)src"}
