@@ -4,14 +4,14 @@
 
 ; Constants
 !define PRODUCT_NAME "T7x"
-!define PRODUCT_DESCRIPTION "Call of Duty Black Ops III Client"
-!define COPYRIGHT "Created by Ahrimdon (FOSS)"
+!define PRODUCT_DESCRIPTION "Call of Duty® Black Ops III Client"
+!define COPYRIGHT "Installer Copyright (C) 2025 Rim. All rights reserved."
 !define PRODUCT_VERSION "1.0.0.0"
 !define SETUP_VERSION "1.0.0.0"
 
 ; Attributes
 Name "${PRODUCT_NAME}"
-OutFile "build\t7xInstaller.exe"
+OutFile "build\T7x-Installer-Win64.exe"
 InstallDir "$EXEDIR"
 RequestExecutionLevel user ; Request user-level execution, not admin
 
@@ -72,9 +72,9 @@ Section "Main Application" SecMain
     SetOutPath $INSTDIR
     File "..\build\bin\x64\Release\t7x.exe"
     File "..\cfg\README.md"
-    File "..\cfg\T7x_CP_Server.bat"
-    File "..\cfg\T7x_MP_Server.bat"
-    File "..\cfg\T7x_ZM_Server.bat"
+    File "..\cfg\!start_cp_server.bat"
+    File "..\cfg\!start_mp_server.bat"
+    File "..\cfg\!start_zm_server.bat"
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 SectionEnd
 
@@ -95,7 +95,7 @@ SectionEnd
 
 Section "LocalAppData Extension File" SecExt
     SetOutPath $LOCALAPPDATA\t7x
-    File "..\ext.dll"
+    File "..\ext\ext.dll"
 SectionEnd
 
 Section "LocalAppData Data Files" SecData
@@ -119,9 +119,9 @@ Section "Uninstall"
     Delete $INSTDIR\t7x.exe
     Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
     Delete "$INSTDIR\README.md"
-    Delete "$INSTDIR\T7x_CP_Server.bat"
-    Delete "$INSTDIR\T7x_MP_Server.bat"
-    Delete "$INSTDIR\T7x_ZM_Server.bat"
+    Delete "$INSTDIR\!start_cp_server.bat"
+    Delete "$INSTDIR\!start_mp_server.bat"
+    Delete "$INSTDIR\!start_zm_server.bat"
 
     Delete "$INSTDIR\zone\server.cfg"
     Delete "$INSTDIR\zone\server_cp.cfg"
