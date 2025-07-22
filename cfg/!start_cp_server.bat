@@ -27,10 +27,10 @@ set ModFolderName=
 :://                          (Optional)                               //
 ::///////////////////////////////////////////////////////////////////////
 
-set ServerFilename=server_cp.cfg
+set ServerConfigFile=server_cp.cfg
 
 ::///////////////////////////////////////////////////////////////////////
 :://DONE!! WARNING! Don't mess with anything below this line. SEROUSLY!//
 ::///////////////////////////////////////////////////////////////////////
 
-start t7x.exe -dedicated +set fs_game "%ModFolderName%" +set net_port "%GamePort%" +set logfile 2 +exec %ServerFilename%
+start t7x.exe -dedicated +set fs_game "%ModFolderName%" +set net_port "%GamePort%" +set logfile 2 +exec %ServerConfigFile%
