@@ -1,0 +1,225 @@
+name: Build and Release T7x
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "cfg/**"
+      - "data/**"
+      - "deps/**"
+      - "installer/**"
+      - "src/**"
+
+    # paths-ignore:
+    #   - ".gitea"
+    #   - ".vscode"
+    #   - "assets"
+    #   - "tools"
+    #   - ".gitignore"
+    #   - ".gitmodules"
+    #   - "build.bat"
+    #   - "generate.bat"
+    #   - "premake5.lua"
+    #   - "README.md"
+
+  # tags:
+  #   - "*" # Trigger the workflow when any tag is pushed. This causes an infinite loop with my janky curl method
+  # schedule:
+  # - cron: "0 0 * * 0"  # Runs weekly on Sunday at midnight UTC
+  # - cron: "*/1 * * * *"  # Runs every 1 minute
+  # - cron: "0 0 0 0 0"
+jobs:
+  build:
+    name: Compile and Stage
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        configuration:
+          - Release
+    steps:
+      - name: Check Out Files
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+          lfs: false # Note: If LFS ever starts getting used during builds, switch this to true!
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1.3
+
+      - name: Generate Project
+        run: tools/premake5 vs2022
+
+      - name: Set Up Problem Matching
+        uses: ammaraskar/msvc-problem-matcher@master
+
+      - name: Build Release Binary
+        run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/t7x.sln
+
+      - name: Compile Installer
+        run: |
+          ./installer/compile.bat
+
+      - name: Stage Release
+        run: |
+          mkdir ./staging
+          mv data/* staging/data
+          mv "cfg/!start_client.bat" staging/.
+          mv build/bin/x64/${{matrix.configuration}}/t7x.exe staging/.
+          mv build/bin/x64/${{matrix.configuration}}/tlsdll.dll staging/.
+          mkdir ./release-artifacts
+
+      - name: Upload Installer Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: t7x-Installer-Win64
+          compression-level: 9
+          path: |
+            installer/build/t7x-Installer-Win64.exe
+
+      - name: Upload ZIP Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: t7x
+          compression-level: 9
+          path: |
+            staging/*
+
+      - name: Upload Server Configuration Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: T7DedicatedConfigs
+          compression-level: 9
+          path: |
+            cfg/*
+
+      - name: Upload Standalone Release Binary Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: t7x-${{matrix.configuration}}-standalone
+          compression-level: 9
+          path: |
+            staging/t7x.exe
+
+      - name: Upload Debug Release Binary Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: t7x-${{matrix.configuration}}-debug-binary
+          compression-level: 9
+          path: |
+            build/bin/x64/${{matrix.configuration}}/t7x.pdb
+
+  Release:
+    needs: build
+    name: Publish Release Assets
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download ZIP Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: t7x
+          path: ./release-artifacts/t7x
+
+      - name: Download Installer Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: t7x-Installer-Win64
+          path: ./release-artifacts
+
+      - name: Download Debug Release Binary Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: t7x-Release-debug-binary
+          path: ./release-artifacts
+
+      - name: Download Server Configuration Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: T7DedicatedConfigs
+          path: ./release-artifacts/T7DedicatedConfigs
+
+      - name: Compress Artifacts
+        run: |
+          powershell -Command 'Compress-Archive -Path ./release-artifacts/t7x/* -DestinationPath ./release-artifacts/t7x.zip -Force'
+          powershell -Command 'Compress-Archive -Path ./release-artifacts/T7DedicatedConfigs/* -DestinationPath ./release-artifacts/T7DedicatedConfigs.zip -Force'
+
+        # This is the jankiest shit I've ever done, but it works
+      - name: Delete Tag
+        run: |
+          curl -X "DELETE" "https://git.rimmyscorner.com/api/v1/repos/Rim/t7x-temp/tags/latest" -H "authorization: token ${{ secrets.TOKEN }}"
+
+      - name: Delete Release
+        run: |
+          curl -X "DELETE" "https://git.rimmyscorner.com/api/v1/repos/Rim/t7x-temp/releases/tags/latest" -H "authorization: token ${{ secrets.TOKEN }}"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          tag_name: latest
+          release_name: T7x
+          body: |
+            ### Steam Verification has been removed. You do **<u>NOT</u>** need to own the game in order to play.
+            - [Where can I get the game?](https://git.rimmyscorner.com/Rim/t7x#where-can-i-get-the-game)
+            - [Instructions](https://git.rimmyscorner.com/Rim/t7x#instructions)
+
+            Compiled by [Actions Runner](https://git.rimmyscorner.com/Rim/t7x/actions)
+
+            ## Disclaimer<a id="disclaimer"></a>
+
+            We do not condone piracy of any kind. Asking for, providing, or discussing illegal download links is not allowed in our communities.
+
+            <a id="downloads"></a>
+          draft: false
+          prerelease: false
+
+      # This man shogo82148 really saved my sanity after HOURS of screwing with this using the official unmaintained repo...
+      - name: Release ZIP
+        uses: shogo82148/actions-upload-release-asset@v1.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-artifacts/t7x.zip
+          asset_name: t7x.zip
+          asset_content_type: application/octet-stream
+
+      - name: Release Debug Binary
+        uses: shogo82148/actions-upload-release-asset@v1.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-artifacts/t7x.pdb
+          asset_name: t7x.pdb
+          asset_content_type: application/octet-stream
+
+      - name: Release Installer
+        uses: shogo82148/actions-upload-release-asset@v1.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-artifacts/t7x-Installer-Win64.exe
+          asset_name: t7x-Installer-Win64.exe
+          asset_content_type: application/octet-stream
+
+      - name: Release Server Configuration
+        uses: shogo82148/actions-upload-release-asset@v1.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-artifacts/T7DedicatedConfigs.zip
+          asset_name: T7DedicatedConfigs.zip
+          asset_content_type: application/octet-stream

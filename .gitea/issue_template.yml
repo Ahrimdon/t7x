@@ -1,0 +1,90 @@
+name: T7x Bug Report
+about: File a bug report
+title: ""
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! ;)
+
+        **Please look at the checklist below and try all potential solutions before submitting your issue!**
+        
+        > [!IMPORTANT]
+        > By checking each box, you acknowledge that you have at the very least attempted that troubleshooting step.
+
+        ---
+  # Markdown that will only be visible once the issue has been created
+  # - type: markdown
+  #   attributes:
+  #     value: |
+  #       This issue was created by an issue **template** :)
+  #   visible: [content]
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Presubmission Checklist
+      hide_label: false
+      options:
+        - label: Do you have Steam installed on your system?
+          required: true
+        - label: If you installed the client using the installer executable, have you tried running *Uninstall.exe* and rerunning the *[t7x-installer.exe](https://git.rimmyscorner.com/Rim/t7x/releases/download/latest/t7xInstaller.exe)*
+          required: true
+        - label: Have you tried launching the game both with and without the `-nosteam` argument?
+          required: true
+          visible: [form]
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can the maintainer get in touch with you if they need more info?
+      placeholder: Email or Discord
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Describe your issue
+      description: What happened? What did you expect to happen? Attach any releveant files or logs (5MB<)
+      placeholder: Describe your issue here
+      # value: "Describe your issue here"
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: How did you install the client?
+      multiple: true
+      options:
+        - Installer
+        - ZIP File (manually)
+    validations:
+      required: true
+  - type: dropdown
+    id: game
+    attributes:
+      label: What version of the game did this issue occur with?
+      multiple: true
+      options:
+        - Steam
+        - Torrent
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: Please copy and paste any relevant log output or attach a log file above. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Agreement
+      hide_label: true
+      # description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com)
+      description: By submitting this issue, you confirm you have tried each of the possible solution above
+      options:
+        - label: I have tried each possible solution listed in the checklist above
+          required: true
+        - label: I am aware of the repo maintainer's [discord](https://discord.com/invite/YcZv2Stt2w)
+          required: true
+          visible: [form]
+        - label: This is a TODO only visible after issue creation
+          visible: [content]
