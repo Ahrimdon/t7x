@@ -82,11 +82,6 @@ Section "Game Directory T7x Files" SecT7xData
     File /r "..\cfg\t7x\*.*"
 SectionEnd
 
-Section "Game Directory T7x Player Files" SecT7xPlayerData
-    SetOutPath $INSTDIR\t7x\players
-    File /r "assets\game\t7x\players\*.*"
-SectionEnd
-
 Section "Game Directory Zone Files" SecZoneData
     SetOutPath $INSTDIR\zone
     File /r "..\cfg\zone\*.*"
