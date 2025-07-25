@@ -71,6 +71,7 @@ FunctionEnd
 Section "Main Application" SecMain
     SetOutPath $INSTDIR
     File "..\build\bin\x64\Release\t7x.exe"
+    File "..\cfg\!start_client.bat"
     File "..\cfg\!start_cp_server.bat"
     File "..\cfg\!start_mp_server.bat"
     File "..\cfg\!start_zm_server.bat"
@@ -106,6 +107,7 @@ FunctionEnd
 Section "Uninstall"
     Delete $INSTDIR\t7x.exe
     Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
+    Delete "$INSTDIR\!start_client.bat"
     Delete "$INSTDIR\!start_cp_server.bat"
     Delete "$INSTDIR\!start_mp_server.bat"
     Delete "$INSTDIR\!start_zm_server.bat"
