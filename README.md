@@ -56,7 +56,7 @@
 
 ## Client Download
 
-[Click here for all client related downloads](https://git.rimmyscorner.com/Rim/t7x/releases/tag/latest)
+[Click here for all client related downloads](https://git.rimmyscorner.com/Rim/t7x/releases/latest)
 
 ## Prerequisites
 
