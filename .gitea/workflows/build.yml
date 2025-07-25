@@ -67,7 +67,6 @@ jobs:
           mkdir ./staging/t7x/data
           mv data/* staging/t7x/data
           mv ext/ext.dll staging/t7x/.
-          cp -r cfg/t7x/* staging/t7x/.
           mv "cfg/!start_client.bat" staging/.
           mv build/bin/x64/${{matrix.configuration}}/t7x.exe staging/.
           mkdir ./release-artifacts
