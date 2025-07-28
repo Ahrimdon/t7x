@@ -1,0 +1,67 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🔄 Generate Solution",
+            "type": "shell",
+            "command": "git submodule update --init --recursive && tools\\premake5 vs2022",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "🔨 Build Executable",
+            "type": "shell",
+            "command": "${input:msbuildPath}",
+            "args": [
+                "build\\t7x.sln",
+                "/p:Configuration=Release",
+                "/p:Platform=x64"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": "🔄 Generate Solution"
+        },
+        {
+            "label": "🔧 Compile Installer",
+            "type": "shell",
+            "command": "installer\\compile.bat",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "🚀 Full Build",
+            "type": "shell",
+            "dependsOn": [
+                "🔄 Generate Solution",
+                "🔨 Build Executable",
+                "🔧 Compile Installer"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+            // "runOptions": {
+            //     "runOn": "folderOpen"
+            // }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "msbuildPath",
+            "type": "promptString",
+            "description": "Enter the full path to msbuild.exe",
+            "default": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\msbuild.exe"
+        }
+    ]
+}
