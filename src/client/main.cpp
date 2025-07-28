@@ -16,53 +16,6 @@
 
 namespace
 {
-	bool ensure_cache_files()
-	{
-		try
-		{
-			// get the cache directory path
-			const auto cache_dir = game::get_real_appdata_path();
-
-			// ensure the cache directory exists first
-			if (!utils::io::directory_exists(cache_dir))
-			{
-				if (!utils::io::create_directory(cache_dir))
-				{
-					return false;
-				}
-			}
-
-			// define file paths
-			const auto cache_file = cache_dir / "cache.bin";
-			const auto data_file = cache_dir / "data.bin";
-
-			// check and create cache.bin if it doesn't exist
-			if (!utils::io::file_exists(cache_file))
-			{
-				if (!utils::io::write_file(cache_file.string(), ""))
-				{
-					return false;
-				}
-			}
-
-			// check and create data.bin if it doesn't exist
-			if (!utils::io::file_exists(data_file))
-			{
-				if (!utils::io::write_file(data_file.string(), ""))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
-		catch (const std::exception& e)
-		{
-			game::show_error(e.what());
-			return false; // return false instead of 1 for boolean type
-		}
-	}
-
 	volatile bool g_call_tls_callbacks = false;
 	std::pair<void**, void*> g_original_import{};
 
@@ -143,6 +96,51 @@ namespace
 		game_path.replace_extension(".start");
 
 		utils::io::remove_file(game_path);
+	}
+
+	bool validate_cache_files()
+	{
+		try
+		{
+			// Get the cache directory
+			const auto cache_dir = game::get_real_appdata_path();
+
+			// Check if cache directory exists
+			if (!utils::io::directory_exists(cache_dir))
+			{
+				if (!utils::io::create_directory(cache_dir))
+				{
+					return false;
+				}
+			}
+
+			// File path constants
+			const auto cache_file = cache_dir / "cache.bin";
+			const auto data_file = cache_dir / "data.bin";
+
+			// Create bin files if not present
+			if (!utils::io::file_exists(cache_file))
+			{
+				if (!utils::io::write_file(cache_file.string(), ""))
+				{
+					return false;
+				}
+			}
+			if (!utils::io::file_exists(data_file))
+			{
+				if (!utils::io::write_file(data_file.string(), ""))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+		catch (const std::exception& e)
+		{
+			game::show_error(e.what());
+			return false; // Return false for boolean type
+		}
 	}
 
 	PIMAGE_TLS_CALLBACK* get_tls_callbacks()
@@ -323,6 +321,7 @@ int main()
 		{
 			validate_non_network_share();
 			remove_crash_file();
+			validate_cache_files();
 			// updater::update();
 
 			if (!utils::io::file_exists(launcher::get_launcher_ui_file().generic_wstring()))
@@ -359,8 +358,6 @@ int main()
 			{
 				return 1;
 			}
-
-			ensure_cache_files();
 
 			entry_point = load_process(is_server ? server_binary : client_binary);
 			if (!entry_point)
