@@ -9,7 +9,7 @@ namespace branding
 	{
 		const char* get_ingame_console_prefix_stub()
 		{
-			return "T7x >";
+			return "T7x > ";
 		}
 	}
 
