@@ -4,7 +4,7 @@
 [![website](https://img.shields.io/badge/Repackers-_Website-blue)](https://rimmyscorner.com/)
 
 <p align="center">
-  <img src="assets/gitea/banner-t7x.png?raw=true" />
+  <img src="assets/github/banner-t7x.png?raw=true" />
 </p>
 
 ---
